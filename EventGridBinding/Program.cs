@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Azure.WebJobs;
 
 namespace EventGridBinding
 {
@@ -10,6 +6,17 @@ namespace EventGridBinding
     {
         static void Main(string[] args)
         {
+            var config = new JobHostConfiguration();
+
+            if (config.IsDevelopment)
+            {
+                config.UseDevelopmentSettings();
+            }
+
+            config.UseEventGrid();
+
+            JobHost host = new JobHost(config);
+            host.RunAndBlock();
         }
     }
 }
