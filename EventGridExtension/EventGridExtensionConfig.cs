@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Microsoft.Azure.WebJobs
 {
@@ -26,11 +27,11 @@ namespace Microsoft.Azure.WebJobs
             context.Config.RegisterBindingExtensions(new EventGridTriggerAttributeBindingProvider(this));
         }
 
-        private List<EventGridListener> _listeners = new List<EventGridListener>();
+        private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();
 
-        internal void AddListener(EventGridListener listener)
+        internal void AddListener(string key, EventGridListener listener)
         {
-            _listeners.Add(listener);
+            _listeners.Add(key, listener);
         }
 
         async Task<HttpResponseMessage> IAsyncConverter<HttpRequestMessage, HttpResponseMessage>.ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
@@ -39,26 +40,30 @@ namespace Microsoft.Azure.WebJobs
             return await response;
         }
 
-        private async Task<HttpResponseMessage> ProcessAsync(HttpRequestMessage input)
+        private async Task<HttpResponseMessage> ProcessAsync(HttpRequestMessage req)
         {
-            string jsonArray = await input.Content.ReadAsStringAsync();
+            string jsonArray = await req.Content.ReadAsStringAsync();
             List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
+            var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
 
-            foreach (var ev in events)
+            if (_listeners.ContainsKey(functionName))
             {
-                TriggeredFunctionData pass = new TriggeredFunctionData
-                {
-                    TriggerValue = ev
-                };
+                var listener = _listeners[functionName];
 
-                foreach (var listener in _listeners)
+                foreach (var ev in events)
                 {
-                    await listener.Executor.TryExecuteAsync(pass, CancellationToken.None);
+                    TriggeredFunctionData triggerData = new TriggeredFunctionData
+                    {
+                        TriggerValue = ev
+                    };
+
+                    await listener.Executor.TryExecuteAsync(triggerData, CancellationToken.None);
                 }
-                // TODO need a map between http requests and listener
+
+                return new HttpResponseMessage(HttpStatusCode.Accepted);
             }
 
-            return new HttpResponseMessage(HttpStatusCode.Accepted);
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
         }
     }
 }

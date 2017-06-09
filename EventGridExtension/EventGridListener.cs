@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.WebJobs.Host.Executors;
 using Newtonsoft.Json;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,13 +18,14 @@ namespace Microsoft.Azure.WebJobs
   'id': '0e917dd7-a70c-44a1-b3a3-5213034f76b9'}";
         public ITriggeredFunctionExecutor Executor { private set; get; }
 
-        private System.Timers.Timer _timer;
+        //private System.Timers.Timer _timer;
         private EventGridExtensionConfig _listenersStore;
+        private readonly string _functionName;
 
-        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfig listenersStore)
+        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfig listenersStore, string functionName)
         {
             _listenersStore = listenersStore;
-
+            _functionName = functionName;
             Executor = executor;
 
             // TODO: For this sample, we're using a timer to generate
@@ -41,7 +43,7 @@ namespace Microsoft.Azure.WebJobs
         {
             // TODO: Start monitoring your event source
             // _timer.Start();
-            _listenersStore.AddListener(this);
+            _listenersStore.AddListener(_functionName, this);
             return Task.FromResult(true);
         }
 
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.WebJobs
         public void Dispose()
         {
             // TODO: Perform any final cleanup
-            _timer.Dispose();
+            // _timer.Dispose();
         }
 
         public void Cancel()

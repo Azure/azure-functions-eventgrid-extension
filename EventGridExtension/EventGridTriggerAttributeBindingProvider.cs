@@ -45,7 +45,7 @@ namespace Microsoft.Azure.WebJobs
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
 
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider));
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
         }
 
 
@@ -54,12 +54,14 @@ namespace Microsoft.Azure.WebJobs
             private readonly ParameterInfo _parameter;
             private readonly IReadOnlyDictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
+            private readonly string _functionName;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
                 _bindingContract = CreateBindingDataContract();
+                _functionName = functionName;
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.WebJobs
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore));
+                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, _functionName));
             }
 
             public ParameterDescriptor ToParameterDescriptor()

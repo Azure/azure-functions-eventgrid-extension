@@ -13,13 +13,5 @@ namespace Microsoft.Azure.WebJobs
         public EventGridTriggerAttribute()
         {
         }
-        public EventGridTriggerAttribute(string path)
-        {
-            // TODO this means unqiue webhook
-            Path = path;
-        }
-
-        // TODO: Define your domain specific values here
-        public string Path { get; private set; }
     }
 }
