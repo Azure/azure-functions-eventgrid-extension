@@ -9,6 +9,8 @@ using Microsoft.Azure.WebJobs.Host.Triggers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -39,7 +41,7 @@ namespace Microsoft.Azure.WebJobs
             }
 
             // TODO: Define the types your binding supports here
-            if (parameter.ParameterType != typeof(EventGridEvent))
+            if (parameter.ParameterType != typeof(EventGridEvent) && parameter.ParameterType != typeof(Stream) && parameter.ParameterType != typeof(string))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
@@ -72,13 +74,17 @@ namespace Microsoft.Azure.WebJobs
 
             public Type TriggerValueType
             {
+                /*
+                TriggeredFunctionData input = new TriggeredFunctionData
+                {
+                    TriggerValue = param
+                };
+                */
                 get { return typeof(EventGridEvent); }
             }
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
-
-                // dispatched to EGevent 
                 EventGridEvent triggerValue = value as EventGridEvent;
                 IValueBinder valueBinder = new EventGridValueBinder(_parameter, triggerValue);
                 return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(triggerValue)));
@@ -107,7 +113,24 @@ namespace Microsoft.Azure.WebJobs
             private IReadOnlyDictionary<string, object> GetBindingData(EventGridEvent value)
             {
                 Dictionary<string, object> bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                bindingData.Add("EventGridTrigger", value);
+                if (_parameter.ParameterType == typeof(EventGridEvent))
+                {
+                    bindingData.Add("EventGridTrigger", value);
+                }
+                else if (_parameter.ParameterType == typeof(Stream))
+                {
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(value.Data.destionationUrl);
+                    // Sends the HttpWebRequest and waits for the response.			
+                    HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+                    // Gets the stream associated with the response.
+                    bindingData.Add("EventGridTrigger", myHttpWebResponse.GetResponseStream());
+                }
+                else
+                {
+                    bindingData.Add("EventGridTrigger", value.Data.destionationUrl.ToString());
+                }
+                bindingData.Add("name", value.Data.destionationUrl.LocalPath);
+
 
                 // TODO: Add any additional binding data
 
@@ -117,7 +140,8 @@ namespace Microsoft.Azure.WebJobs
             private IReadOnlyDictionary<string, Type> CreateBindingDataContract()
             {
                 Dictionary<string, Type> contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-                contract.Add("EventGridTrigger", typeof(EventGridEvent));
+                contract.Add("EventGridTrigger", _parameter.ParameterType);
+                contract.Add("name", typeof(string));
 
                 // TODO: Add any additional binding contract members
 
@@ -140,7 +164,24 @@ namespace Microsoft.Azure.WebJobs
                 public EventGridValueBinder(ParameterInfo parameter, EventGridEvent value)
                     : base(parameter.ParameterType)
                 {
-                    _value = value;
+                    if (parameter.ParameterType == typeof(EventGridEvent))
+                    {
+                        _value = value;
+                    }
+                    else if (parameter.ParameterType == typeof(Stream))
+                    {
+                        HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(value.Data.destionationUrl);
+                        // Sends the HttpWebRequest and waits for the response.			
+                        HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+                        // Gets the stream associated with the response.
+                        _value = myHttpWebResponse.GetResponseStream();
+                        // SHUNTODO since we know the size, we can put it in an array
+                    }
+                    else
+                    {
+                        _value = value.Data.destionationUrl.ToString();
+                    }
+
                 }
 
                 public override Task<object> GetValueAsync()

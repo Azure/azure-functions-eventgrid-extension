@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.WebJobs;
 using System;
+using System.IO;
 
 namespace EventGridBinding
 {
@@ -24,9 +25,29 @@ namespace EventGridBinding
             Console.WriteLine("Sample trigger job called!");
         }*/
 
-        public static void SampleTrigger_BindToString([EventGridTrigger(@"sample\path")] EventGridEvent value)
+        /*
+        public static void SampleTrigger_BindToString([EventGridTrigger] EventGridEvent value)
         {
             Console.WriteLine(value);
+        }*/
+
+        public static void testInputStream([EventGridTrigger] Stream myBlob, string name)
+        {
+            Console.WriteLine($"file name {name}");
+            var reader = new StreamReader(myBlob);
+            string line = null;
+            while (!string.IsNullOrEmpty(line = reader.ReadLine()))
+            {
+                Console.WriteLine(line);
+            }
         }
+
+        /*
+        public static void displayUrl([EventGridTrigger] string url)
+        {
+            Console.WriteLine(url);
+            Console.ReadLine();
+        }
+        */
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,49 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs
 {
+    public class StorageBlob
+    {
+        /*
+         *  'data': {
+    'destinationUrl': 'https://eventhubgriddemo.blob.core.windows.net/ehcaptures/cesardf/metrics/7/2017/06/10/00/31/57.avro',
+    'destinationType': 'EventHubArchive.AzureBlockBlob',
+    'partitionId': '7',
+    'sizeInBytes': 680524,
+    'eventCount': 5300,
+    'firstSequenceNumber': 3382300,
+    'lastSequenceNumber': 3387599,
+    'firstEnqueueTime': '2017-06-10T00:31:58.343Z',
+    'lastEnqueueTime': '2017-06-10T00:32:56.791Z'
+  }
+         */
+        [JsonProperty(PropertyName = "destinationUrl")]
+        public Uri destionationUrl { get; set; }
+
+        [JsonProperty(PropertyName = "destinationType")]
+        public string destionationType { get; set; }
+
+        [JsonProperty(PropertyName = "partitionId")]
+        public int partitionId { get; set; }
+
+        [JsonProperty(PropertyName = "sizeInBytes")]
+        public int sizeInBytes { get; set; }
+
+        [JsonProperty(PropertyName = "eventCount")]
+        public int eventCount { get; set; }
+
+        [JsonProperty(PropertyName = "firstSequenceNumber")]
+        public int firstSequenceNumber { get; set; }
+
+        [JsonProperty(PropertyName = "lastSequenceNumber")]
+        public int lastSequenceNumber { get; set; }
+
+        [JsonProperty(PropertyName = "firstEnqueueTime")]
+        public DateTime firstEnqueueTime { get; set; }
+
+        [JsonProperty(PropertyName = "lastEnqueueTime")]
+        public DateTime lastEnqueueTime { get; set; }
+
+    }
 
     public class EventGridEvent
     {
@@ -27,7 +71,7 @@ namespace Microsoft.Azure.WebJobs
         public string Subject { get; set; }
 
         [JsonProperty(PropertyName = "data")]
-        public string Data { get; set; }
+        public StorageBlob Data { get; set; }
 
         [JsonProperty(PropertyName = "eventType")]
         public string EventType { get; set; }
