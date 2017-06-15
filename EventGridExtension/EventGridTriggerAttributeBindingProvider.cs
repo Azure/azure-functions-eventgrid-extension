@@ -57,6 +57,7 @@ namespace Microsoft.Azure.WebJobs
             private readonly IReadOnlyDictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
             private readonly string _functionName;
+            private object _value;
 
             public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
             {
@@ -86,8 +87,35 @@ namespace Microsoft.Azure.WebJobs
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, triggerValue);
-                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(triggerValue)));
+                if (_parameter.ParameterType == typeof(EventGridEvent))
+                {
+                    _value = triggerValue;
+                }
+                else if (_parameter.ParameterType == typeof(Stream))
+                {
+                    var byteStream = new MemoryStream();
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(triggerValue.Data.destionationUrl);
+                    using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                    {
+                        using (Stream responseStream = myHttpWebResponse.GetResponseStream())
+                        {
+                            var buffer = new byte[4096];
+                            var bytesRead = 0;
+                            while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                byteStream.Write(buffer, 0, bytesRead);
+                            }
+                        }
+                    }
+                    byteStream.Position = 0;
+                    _value = byteStream;
+                }
+                else
+                {
+                    _value = triggerValue.Data.destionationUrl.ToString();
+                }
+                IValueBinder valueBinder = new EventGridValueBinder(_parameter, _value);
+                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(_value, triggerValue)));
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
@@ -110,29 +138,11 @@ namespace Microsoft.Azure.WebJobs
                 };
             }
 
-            private IReadOnlyDictionary<string, object> GetBindingData(EventGridEvent value)
+            private IReadOnlyDictionary<string, object> GetBindingData(object value, EventGridEvent triggerValue)
             {
                 Dictionary<string, object> bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                if (_parameter.ParameterType == typeof(EventGridEvent))
-                {
-                    bindingData.Add("EventGridTrigger", value);
-                }
-                else if (_parameter.ParameterType == typeof(Stream))
-                {
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(value.Data.destionationUrl);
-                    // Sends the HttpWebRequest and waits for the response.			
-                    HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
-                    // Gets the stream associated with the response.
-                    bindingData.Add("EventGridTrigger", myHttpWebResponse.GetResponseStream());
-                }
-                else
-                {
-                    bindingData.Add("EventGridTrigger", value.Data.destionationUrl.ToString());
-                }
-                bindingData.Add("name", value.Data.destionationUrl.LocalPath);
-
-
-                // TODO: Add any additional binding data
+                bindingData.Add("EventGridTrigger", value);
+                bindingData.Add("name", triggerValue.Data.destionationUrl.LocalPath); // conditional to eventhub archive
 
                 return bindingData;
             }
@@ -141,9 +151,7 @@ namespace Microsoft.Azure.WebJobs
             {
                 Dictionary<string, Type> contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
                 contract.Add("EventGridTrigger", _parameter.ParameterType);
-                contract.Add("name", typeof(string));
-
-                // TODO: Add any additional binding contract members
+                contract.Add("name", typeof(string)); // conditional to eventhub archive
 
                 return contract;
             }
@@ -161,27 +169,10 @@ namespace Microsoft.Azure.WebJobs
             {
                 private readonly object _value;
 
-                public EventGridValueBinder(ParameterInfo parameter, EventGridEvent value)
+                public EventGridValueBinder(ParameterInfo parameter, object value)
                     : base(parameter.ParameterType)
                 {
-                    if (parameter.ParameterType == typeof(EventGridEvent))
-                    {
-                        _value = value;
-                    }
-                    else if (parameter.ParameterType == typeof(Stream))
-                    {
-                        HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(value.Data.destionationUrl);
-                        // Sends the HttpWebRequest and waits for the response.			
-                        HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
-                        // Gets the stream associated with the response.
-                        _value = myHttpWebResponse.GetResponseStream();
-                        // SHUNTODO since we know the size, we can put it in an array
-                    }
-                    else
-                    {
-                        _value = value.Data.destionationUrl.ToString();
-                    }
-
+                    _value = value;
                 }
 
                 public override Task<object> GetValueAsync()
