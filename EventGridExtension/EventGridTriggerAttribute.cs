@@ -10,18 +10,18 @@ namespace Microsoft.Azure.WebJobs
     [Binding]
     public sealed class EventGridTriggerAttribute : Attribute
     {
-        public const string eventHubArchive = "eventHubArchive";
         public EventGridTriggerAttribute()
         {
-            Publisher = null; // if this is not provided, only EventGridEvent can be parsed
+            Publisher = new DefaultPublisher(); // if this is not provided, only EventGridEvent can be parsed
         }
 
+        // publisher provider
         public EventGridTriggerAttribute(string publisher)
         {
             // FIXME
-            if (String.Equals(publisher, eventHubArchive, StringComparison.OrdinalIgnoreCase))
+            if (String.Equals(publisher, EventHubArchivePublisher.Name, StringComparison.OrdinalIgnoreCase))
             {
-                Publisher = eventHubArchive;
+                Publisher = new EventHubArchivePublisher();
             }
             else
             {
@@ -29,6 +29,6 @@ namespace Microsoft.Azure.WebJobs
             }
         }
 
-        public string Publisher { get; private set; }
+        public IPublisher Publisher { get; private set; }
     }
 }
