@@ -40,18 +40,20 @@ namespace Microsoft.Azure.WebJobs
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            if (parameter.ParameterType == typeof(EventGridEvent))
-            {
-                // universally supported
-                return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
-            }
-
             // depends on the publisher, we could have different expectation for paramter
             string publisher = attribute.Publisher;
-            if (publisher == EventGridTriggerAttribute.eventHubArchive && parameter.ParameterType != typeof(Stream))
+            if (String.IsNullOrEmpty(publisher) && !(parameter.ParameterType == typeof(EventGridEvent)))
+            {
+                throw new InvalidOperationException($"Can only bind EventGridTriggerAttribute to type 'EventGridEvent' when no publisher is specified.");
+            }
+            else if (parameter.ParameterType == typeof(EventGridEvent))
+            {
+                // always valid, no need to check for publisher and what the specify parameter publisher can parse to
+            }
+            else if (publisher == EventGridTriggerAttribute.eventHubArchive && parameter.ParameterType != typeof(Stream))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                    "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
+                    "Can't bind EventGridTriggerAttribute with publisher '{0}' to type '{1}'.", publisher, parameter.ParameterType));
             }
             // unsupported publisher is caught in attribute constrcutor
             return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, publisher));
@@ -68,7 +70,7 @@ namespace Microsoft.Azure.WebJobs
             private object _value;
             private readonly string _publisher;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, string publisher = null)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, string publisher)
             {
                 _publisher = publisher;
                 _listenersStore = listenersStore;

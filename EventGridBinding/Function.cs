@@ -6,7 +6,7 @@ namespace EventGridBinding
 {
     public static class Function
     {
-        public static void testEventGrid([EventGridTrigger("eventhubarchive")] EventGridEvent value)
+        public static void testEventGrid([EventGridTrigger] EventGridEvent value)
         {
             Console.WriteLine(value);
         }

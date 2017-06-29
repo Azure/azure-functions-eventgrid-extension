@@ -11,6 +11,11 @@ namespace Microsoft.Azure.WebJobs
     public sealed class EventGridTriggerAttribute : Attribute
     {
         public const string eventHubArchive = "eventHubArchive";
+        public EventGridTriggerAttribute()
+        {
+            Publisher = null; // if this is not provided, only EventGridEvent can be parsed
+        }
+
         public EventGridTriggerAttribute(string publisher)
         {
             // FIXME
