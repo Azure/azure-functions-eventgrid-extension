@@ -40,14 +40,22 @@ namespace Microsoft.Azure.WebJobs
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            // TODO: Define the types your binding supports here
-            if (parameter.ParameterType != typeof(EventGridEvent) && parameter.ParameterType != typeof(Stream) && parameter.ParameterType != typeof(string))
+            if (parameter.ParameterType == typeof(EventGridEvent))
+            {
+                // universally supported
+                return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
+            }
+
+            // depends on the publisher, we could have different expectation for paramter
+            string publisher = attribute.Publisher;
+            if (publisher == EventGridTriggerAttribute.eventHubArchive && parameter.ParameterType != typeof(Stream))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
+            // unsupported publisher is caught in attribute constrcutor
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, publisher));
 
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
         }
 
 
@@ -58,13 +66,15 @@ namespace Microsoft.Azure.WebJobs
             private EventGridExtensionConfig _listenersStore;
             private readonly string _functionName;
             private object _value;
+            private readonly string _publisher;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, string publisher = null)
             {
+                _publisher = publisher;
                 _listenersStore = listenersStore;
                 _parameter = parameter;
-                _bindingContract = CreateBindingDataContract();
                 _functionName = functionName;
+                _bindingContract = CreateBindingDataContract();
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract
@@ -91,28 +101,30 @@ namespace Microsoft.Azure.WebJobs
                 {
                     _value = triggerValue;
                 }
-                else if (_parameter.ParameterType == typeof(Stream))
+                else if (_publisher == EventGridTriggerAttribute.eventHubArchive)
                 {
-                    var byteStream = new MemoryStream();
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(triggerValue.Data.destionationUrl);
-                    using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                    // string for name?
+                    if (_parameter.ParameterType == typeof(Stream))
                     {
-                        using (Stream responseStream = myHttpWebResponse.GetResponseStream())
+                        // TODO not necessary since we don't always use the content of the stream
+                        var byteStream = new MemoryStream();
+                        StorageBlob data = triggerValue.Data.ToObject<StorageBlob>();
+                        HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.destionationUrl);
+                        using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
                         {
-                            var buffer = new byte[4096];
-                            var bytesRead = 0;
-                            while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                            using (Stream responseStream = myHttpWebResponse.GetResponseStream())
                             {
-                                byteStream.Write(buffer, 0, bytesRead);
+                                var buffer = new byte[4096];
+                                var bytesRead = 0;
+                                while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+                                {
+                                    byteStream.Write(buffer, 0, bytesRead);
+                                }
                             }
                         }
+                        byteStream.Position = 0;
+                        _value = byteStream;
                     }
-                    byteStream.Position = 0;
-                    _value = byteStream;
-                }
-                else
-                {
-                    _value = triggerValue.Data.destionationUrl.ToString();
                 }
                 IValueBinder valueBinder = new EventGridValueBinder(_parameter, _value);
                 return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(_value, triggerValue)));
@@ -142,7 +154,11 @@ namespace Microsoft.Azure.WebJobs
             {
                 Dictionary<string, object> bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 bindingData.Add("EventGridTrigger", value);
-                bindingData.Add("name", triggerValue.Data.destionationUrl.LocalPath); // conditional to eventhub archive
+                if (_publisher == EventGridTriggerAttribute.eventHubArchive)
+                {
+                    // allow autofill
+                    bindingData.Add("name", triggerValue.Data.ToObject<StorageBlob>().destionationUrl.LocalPath); // conditional to eventhub archive
+                }
 
                 return bindingData;
             }
@@ -151,7 +167,13 @@ namespace Microsoft.Azure.WebJobs
             {
                 Dictionary<string, Type> contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
                 contract.Add("EventGridTrigger", _parameter.ParameterType);
-                contract.Add("name", typeof(string)); // conditional to eventhub archive
+                // different for each publisher
+                if (_publisher == EventGridTriggerAttribute.eventHubArchive)
+                {
+                    // allow autofill
+                    contract.Add("name", typeof(string));
+                }
+
 
                 return contract;
             }

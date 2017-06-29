@@ -84,7 +84,6 @@ namespace Microsoft.Azure.WebJobs
             // invoke the function executor
 
             // do nothing
-            /*
             List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(stringJson);
             foreach (var param in events)
             {
@@ -94,7 +93,7 @@ namespace Microsoft.Azure.WebJobs
                 };
 
                 Executor.TryExecuteAsync(input, CancellationToken.None).Wait();
-            }*/
+            }
         }
     }
 }

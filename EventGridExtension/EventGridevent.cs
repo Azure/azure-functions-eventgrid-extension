@@ -70,8 +70,9 @@ namespace Microsoft.Azure.WebJobs
         [JsonProperty(PropertyName = "subject")]
         public string Subject { get; set; }
 
+        // the content of this depends on the publisher
         [JsonProperty(PropertyName = "data")]
-        public StorageBlob Data { get; set; }
+        public JObject Data { get; set; }
 
         [JsonProperty(PropertyName = "eventType")]
         public string EventType { get; set; }
