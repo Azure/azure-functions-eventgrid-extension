@@ -38,16 +38,24 @@ namespace Microsoft.Azure.WebJobs
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            // TODO, Provider, although this means that we need to write the same if else statement in attribute constructor
-            // and here, 1 for error checking, 2 for multiplexing
-
             // depends on the publisher, we could have different expectation for paramter
-            IPublisher publisher = attribute.Publisher;
-            var contract = publisher.ExtractBindingContract(parameter.ParameterType);
+            string publisherName = attribute.Publisher;
+            IPublisher publisher = null;
+            // factory pattern
+            if (String.IsNullOrEmpty(publisherName))
+            {
+                publisher = new DefaultPublisher();
+            }
+            else if (String.Equals(publisherName, EventHubArchivePublisher.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                publisher = new EventHubArchivePublisher();
+            }
+
+            var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
             if (contract == null)
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                    "Can't bind EventGridTriggerAttribute with publisher '{0}' to type '{1}'.", publisher.PublisherName, parameter.ParameterType));
+                    "Can't bind EventGridTriggerAttribute with publisher '{0}' to type '{1}'.", publisherName, parameter.ParameterType));
             }
             // unsupported publisher is caught in attribute constrcutor
             return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, publisher, contract));

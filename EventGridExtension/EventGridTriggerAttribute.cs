@@ -12,23 +12,13 @@ namespace Microsoft.Azure.WebJobs
     {
         public EventGridTriggerAttribute()
         {
-            Publisher = new DefaultPublisher(); // if this is not provided, only EventGridEvent can be parsed
         }
 
-        // publisher provider
         public EventGridTriggerAttribute(string publisher)
         {
-            // FIXME
-            if (String.Equals(publisher, EventHubArchivePublisher.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                Publisher = new EventHubArchivePublisher();
-            }
-            else
-            {
-                throw new InvalidOperationException($"unsupported publisher {publisher}");
-            }
+            Publisher = publisher;
         }
 
-        public IPublisher Publisher { get; }
+        public string Publisher { get; }
     }
 }
