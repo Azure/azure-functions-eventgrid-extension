@@ -38,6 +38,9 @@ namespace Microsoft.Azure.WebJobs
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
+            // TODO, Provider, although this means that we need to write the same if else statement in attribute constructor
+            // and here, 1 for error checking, 2 for multiplexing
+
             // depends on the publisher, we could have different expectation for paramter
             IPublisher publisher = attribute.Publisher;
             var contract = publisher.ExtractBindingContract(parameter.ParameterType);

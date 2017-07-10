@@ -29,6 +29,6 @@ namespace Microsoft.Azure.WebJobs
             }
         }
 
-        public IPublisher Publisher { get; private set; }
+        public IPublisher Publisher { get; }
     }
 }
