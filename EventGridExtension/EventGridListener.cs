@@ -43,17 +43,22 @@ namespace Microsoft.Azure.WebJobs
 
             // TODO: For this sample, we're using a timer to generate
             // trigger events. You'll replace this with your event source.
+            /*
             _timer = new System.Timers.Timer(5 * 1000)
             {
                 AutoReset = false
             };
             _timer.Elapsed += OnTimer;
+            */
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             // TODO: Start monitoring your event source
-            _timer.Start();
+            if (_timer != null)
+            {
+                _timer.Start();
+            }
             _listenersStore.AddListener(_functionName, this);
             return Task.FromResult(true);
         }
@@ -61,7 +66,10 @@ namespace Microsoft.Azure.WebJobs
         public Task StopAsync(CancellationToken cancellationToken)
         {
             // TODO: Stop monitoring your event source
-            _timer.Stop();
+            if (_timer != null)
+            {
+                _timer.Stop();
+            }
             // TODO unsubscribe
             return Task.FromResult(true);
         }
@@ -69,7 +77,10 @@ namespace Microsoft.Azure.WebJobs
         public void Dispose()
         {
             // TODO: Perform any final cleanup
-            _timer.Dispose();
+            if (_timer != null)
+            {
+                _timer.Dispose();
+            }
         }
 
         public void Cancel()
@@ -83,7 +94,6 @@ namespace Microsoft.Azure.WebJobs
             // TODO: When you receive new events from your event source,
             // invoke the function executor
 
-            // do nothing
             List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(stringJson);
             foreach (var param in events)
             {
