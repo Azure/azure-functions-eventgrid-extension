@@ -11,23 +11,23 @@ namespace Microsoft.Azure.WebJobs
     public class StorageBlob
     {
         /*
-         *  'data': {
-    'destinationUrl': 'https://eventhubgriddemo.blob.core.windows.net/ehcaptures/cesardf/metrics/7/2017/06/10/00/31/57.avro',
-    'destinationType': 'EventHubArchive.AzureBlockBlob',
-    'partitionId': '7',
-    'sizeInBytes': 680524,
-    'eventCount': 5300,
-    'firstSequenceNumber': 3382300,
-    'lastSequenceNumber': 3387599,
-    'firstEnqueueTime': '2017-06-10T00:31:58.343Z',
-    'lastEnqueueTime': '2017-06-10T00:32:56.791Z'
-  }
+{
+    "fileUrl": "https://shunsouthcentralus.blob.core.windows.net/archivecontainershun/canaryeh/test/1/2017/07/14/23/09/27.avro",
+    "fileType": "AzureBlockBlob",
+    "partitionId": "1",
+    "sizeInBytes": 0,
+    "eventCount": 0,
+    "firstSequenceNumber": -1,
+    "lastSequenceNumber": -1,
+    "firstEnqueueTime": "0001-01-01T00:00:00",
+    "lastEnqueueTime": "0001-01-01T00:00:00"
+}
          */
-        [JsonProperty(PropertyName = "destinationUrl")]
-        public Uri destionationUrl { get; set; }
+        [JsonProperty(PropertyName = "fileUrl")]
+        public Uri fileUrl { get; set; }
 
-        [JsonProperty(PropertyName = "destinationType")]
-        public string destionationType { get; set; }
+        [JsonProperty(PropertyName = "fileType")]
+        public string fileType { get; set; }
 
         [JsonProperty(PropertyName = "partitionId")]
         public int partitionId { get; set; }
@@ -55,13 +55,15 @@ namespace Microsoft.Azure.WebJobs
     public class EventGridEvent
     {
         /*
-        "topic": "/subscriptions/feda0306-5ce4-4423-91f6-26b4f2f55a45/resourcegroups/shunTest/providers/Microsoft.EventGridMockPublisher/dbAccounts/shunDbAccount",
-        "subject": "tables/table1",
-        "data": "{\"Size\":454566,\"Timestamp\":\"2017-06-05T23:18:33.1816208Z\",\"ETag\":\"686897696a7c876b7e\"}",
-        "eventType": "tableCreated",
-        "eventTime": "2017-06-05T23:18:33.1806217Z",
-        "publishTime": "2017-06-05T23:18:33.2510851Z",
-        "id": "0e917dd7-a70c-44a1-b3a3-5213034f76b9"
+{
+  "topic": "/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh",
+  "subject": "eventhubs/test",
+  "eventType": "captureFileCreated",
+  "eventTime": "2017-07-14T23:10:27.7689666Z",
+  "id": "7b11c4ce-1c34-4416-848b-1730e766f126",
+  "data": {},
+  "publishTime": "2017-07-14T23:10:29.5004788Z"
+}
         */
 
         [JsonProperty(PropertyName = "topic")]

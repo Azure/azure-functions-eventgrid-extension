@@ -11,23 +11,23 @@ namespace Microsoft.Azure.WebJobs
     {
         // this only works for anonymous blob access
         private const string stringJson = @"[{
-  'topic': '/subscriptions/5f750a97-50d9-4e36-8081-c9ee4c0210d4/resourcegroups/cesarrg/providers/Microsoft.EventHub/namespaces/cesardf',
-  'subject': 'eventhubs/metrics',
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
+  'subject': 'eventhubs/test',
   'eventType': 'captureFileCreated',
-  'eventTime': '2017-06-10T00:32:57.7135938Z',
-  'id': '8f099658-29c6-48d5-96f2-7c23143def14',
+  'eventTime': '2017-07-14T23:10:27.7689666Z',
+  'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': {
-    'destinationUrl': 'https://eventhubgriddemo.blob.core.windows.net/ehcaptures/cesardf/metrics/7/2017/06/10/00/31/57.avro',
-    'destinationType': 'EventHubArchive.AzureBlockBlob',
-    'partitionId': '7',
-    'sizeInBytes': 680524,
-    'eventCount': 5300,
-    'firstSequenceNumber': 3382300,
-    'lastSequenceNumber': 3387599,
-    'firstEnqueueTime': '2017-06-10T00:31:58.343Z',
-    'lastEnqueueTime': '2017-06-10T00:32:56.791Z'
+    'fileUrl': 'https://shunsouthcentralus.blob.core.windows.net/archivecontainershun/canaryeh/test/1/2017/07/14/23/09/27.avro',
+    'fileType': 'AzureBlockBlob',
+    'partitionId': '1',
+    'sizeInBytes': 0,
+    'eventCount': 0,
+    'firstSequenceNumber': -1,
+    'lastSequenceNumber': -1,
+    'firstEnqueueTime': '0001-01-01T00:00:00',
+    'lastEnqueueTime': '0001-01-01T00:00:00'
   },
-  'publishTime': '2017-06-10T00:32:58.6036558Z'
+  'publishTime': '2017-07-14T23:10:29.5004788Z'
 }]";
         public ITriggeredFunctionExecutor Executor { private set; get; }
 

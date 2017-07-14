@@ -44,7 +44,7 @@ namespace Microsoft.Azure.WebJobs
                 var byteStream = new MemoryStream();
                 StorageBlob data = e.Data.ToObject<StorageBlob>();
 
-                HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.destionationUrl);
+                HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
                 using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
                 {
                     using (Stream responseStream = myHttpWebResponse.GetResponseStream())
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.WebJobs
                 }
                 byteStream.Position = 0;
                 bindingData.Add("EventGridTrigger", byteStream);
-                bindingData.Add("name", data.destionationUrl.LocalPath);
+                bindingData.Add("name", data.fileUrl.LocalPath);
             }
             return bindingData;
         }
