@@ -48,6 +48,9 @@ namespace Microsoft.Azure.WebJobs
 
             if (_listeners.ContainsKey(functionName))
             {
+                // TODO echo back if its a subscription verification
+                // return different httpResponseMessage
+
                 var listener = _listeners[functionName];
 
                 foreach (var ev in events)

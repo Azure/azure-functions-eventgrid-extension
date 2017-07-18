@@ -39,6 +39,7 @@ namespace Microsoft.Azure.WebJobs
             }
 
             // depends on the publisher, we could have different expectation for paramter
+            // TODO javascript, you cannot sepcify parameterType?
             string publisherName = attribute.Publisher;
             IPublisher publisher = null;
             // factory pattern
