@@ -12,6 +12,11 @@ namespace Microsoft.Azure.WebJobs
             get { return Name; }
         }
 
+        public List<IDisposable> Recycles
+        {
+            get { return null; }
+        }
+
         public Dictionary<string, Type> ExtractBindingContract(Type t)
         {
             if (t == typeof(EventGridEvent))

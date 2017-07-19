@@ -8,9 +8,16 @@ namespace Microsoft.Azure.WebJobs
     public class EventHubArchivePublisher : IPublisher
     {
         public const string Name = "eventHubArchive";
+        private List<IDisposable> _recycles = null;
+
         public string PublisherName
         {
             get { return Name; }
+        }
+
+        public List<IDisposable> Recycles
+        {
+            get { return _recycles; }
         }
 
         public Dictionary<string, Type> ExtractBindingContract(Type t)
@@ -46,30 +53,22 @@ namespace Microsoft.Azure.WebJobs
             }
             else if (t == typeof(Stream))
             {
-                //not necessary since we don't always use the content of the stream
-                var byteStream = new MemoryStream();
                 StorageBlob data = e.Data.ToObject<StorageBlob>();
 
                 HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
-                using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
-                {
-                    using (Stream responseStream = myHttpWebResponse.GetResponseStream())
-                    {
-                        var buffer = new byte[4096];
-                        var bytesRead = 0;
-                        while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            byteStream.Write(buffer, 0, bytesRead);
-                        }
-                        byteStream.Position = 0;
-                        bindingData.Add("EventGridTrigger", byteStream);
-                        bindingData.Add("name", data.fileUrl.LocalPath);
-                    }
-                }
+
+                _recycles = new List<IDisposable>();
+                HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+                Stream responseStream = myHttpWebResponse.GetResponseStream();
+                _recycles.Add(responseStream);
+                _recycles.Add(myHttpWebResponse);
+
+                bindingData.Add("EventGridTrigger", responseStream);
+                bindingData.Add("name", data.fileUrl.LocalPath);
             }
             else if (t == typeof(string))
             {
-                // TODO read blob requires a lot of memory consumption
+                // XXX read blob may require a lot of memory consumption
                 StorageBlob data = e.Data.ToObject<StorageBlob>();
                 HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
                 using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())

@@ -7,6 +7,8 @@ namespace Microsoft.Azure.WebJobs
     {
         string PublisherName { get; }
 
+        List<IDisposable> Recycles { get; }
+
         Dictionary<string, Type> ExtractBindingContract(Type t);
 
         Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t);
