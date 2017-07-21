@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -27,18 +28,18 @@ namespace Microsoft.Azure.WebJobs
             {
                 _contract.Add("EventGridTrigger", t);
             }
-            else if (t == typeof(Stream))
+            else if (t == typeof(Stream) || t == typeof(string) || t == typeof(CloudBlob))
             {
                 _contract.Add("EventGridTrigger", t);
-                _contract.Add("name", typeof(string));
-            }
-            else if (t == typeof(string))
-            {
-                _contract.Add("EventGridTrigger", t);
-                _contract.Add("name", typeof(string));
+                _contract.Add("BlobTrigger", typeof(string));
+                _contract.Add("Uri", typeof(Uri));
+                _contract.Add("Properties", typeof(BlobProperties));
+                _contract.Add("Metadata", typeof(IDictionary<string, string>));
+                _contract.Add("Name", typeof(string));
             }
             else
             {
+                // fail
                 return null;
             }
             return _contract;
@@ -51,39 +52,53 @@ namespace Microsoft.Azure.WebJobs
             {
                 bindingData.Add("EventGridTrigger", e);
             }
-            else if (t == typeof(Stream))
-            {
-                StorageBlob data = e.Data.ToObject<StorageBlob>();
-
-                HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
-
-                _recycles = new List<IDisposable>();
-                HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
-                Stream responseStream = myHttpWebResponse.GetResponseStream();
-                _recycles.Add(responseStream);
-                _recycles.Add(myHttpWebResponse);
-
-                bindingData.Add("EventGridTrigger", responseStream);
-                bindingData.Add("name", data.fileUrl.LocalPath);
-            }
-            else if (t == typeof(string))
-            {
-                // XXX read blob may require a lot of memory consumption
-                StorageBlob data = e.Data.ToObject<StorageBlob>();
-                HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
-                using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
-                {
-                    using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))
-                    {
-                        string blobData = responseStream.ReadToEnd();
-                        bindingData.Add("EventGridTrigger", blobData);
-                        bindingData.Add("name", data.fileUrl.LocalPath);
-                    }
-                }
-            }
             else
             {
-                return null;
+                StorageBlob data = e.Data.ToObject<StorageBlob>();
+                var blob = new CloudBlob(data.fileUrl);
+                // set metadata based on https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-functions/functions-bindings-storage-blob.md#trigger-metadata
+                //BlobTrigger.Type string.The triggering blob path
+                bindingData.Add("BlobTrigger", blob.Container.Name + "/" + blob.Name);
+                //Uri.Type System.Uri.The blob's URI for the primary location.
+                bindingData.Add("Uri", blob.Uri);
+                //Properties.Type Microsoft.WindowsAzure.Storage.Blob.BlobProperties.The blob's system properties.
+                bindingData.Add("Properties", blob.Properties);
+                //Metadata.Type IDictionary<string, string>.The user - defined metadata for the blob
+                bindingData.Add("Metadata", blob.Metadata);
+                //name
+                bindingData.Add("name", blob.Name);
+
+                if (t == typeof(Stream))
+                {
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
+
+                    _recycles = new List<IDisposable>();
+                    // SHUN TODO async
+                    HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+                    Stream responseStream = myHttpWebResponse.GetResponseStream();
+                    _recycles.Add(responseStream);
+                    _recycles.Add(myHttpWebResponse);
+
+                    bindingData.Add("EventGridTrigger", responseStream);
+                    bindingData.Add("name", data.fileUrl.LocalPath);
+                }
+                else if (t == typeof(string))
+                {
+                    // read all to buffer
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
+                    using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                    {
+                        using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))
+                        {
+                            string blobData = responseStream.ReadToEnd();
+                            bindingData.Add("EventGridTrigger", blobData);
+                        }
+                    }
+                }
+                else if (t == typeof(CloudBlob))
+                {
+                    bindingData.Add("EventGridTrigger", blob);
+                }
             }
             return bindingData;
         }

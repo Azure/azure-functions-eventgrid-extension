@@ -9,6 +9,8 @@ namespace Microsoft.Azure.WebJobs
 
         List<IDisposable> Recycles { get; }
 
+        // this method needs to filter invalid datatype
+        // return null
         Dictionary<string, Type> ExtractBindingContract(Type t);
 
         Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t);
