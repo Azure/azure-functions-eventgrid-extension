@@ -35,7 +35,6 @@ namespace Microsoft.Azure.WebJobs
                 _contract.Add("Uri", typeof(Uri));
                 _contract.Add("Properties", typeof(BlobProperties));
                 _contract.Add("Metadata", typeof(IDictionary<string, string>));
-                _contract.Add("Name", typeof(string));
             }
             else
             {
@@ -65,8 +64,8 @@ namespace Microsoft.Azure.WebJobs
                 bindingData.Add("Properties", blob.Properties);
                 //Metadata.Type IDictionary<string, string>.The user - defined metadata for the blob
                 bindingData.Add("Metadata", blob.Metadata);
-                //name
-                bindingData.Add("name", blob.Name);
+                // [Blob("output/copy-{name}")] out string output, does not apply here
+                // bindingData.Add("name", blob.Name);
 
                 if (t == typeof(Stream))
                 {
@@ -80,7 +79,6 @@ namespace Microsoft.Azure.WebJobs
                     _recycles.Add(myHttpWebResponse);
 
                     bindingData.Add("EventGridTrigger", responseStream);
-                    bindingData.Add("name", data.fileUrl.LocalPath);
                 }
                 else if (t == typeof(string))
                 {
