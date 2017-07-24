@@ -23,25 +23,25 @@ namespace Microsoft.Azure.WebJobs
 
         public Dictionary<string, Type> ExtractBindingContract(Type t)
         {
-            var _contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+            var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
             if (t == typeof(EventGridEvent))
             {
-                _contract.Add("EventGridTrigger", t);
+                contract.Add("EventGridTrigger", t);
             }
             else if (t == typeof(Stream) || t == typeof(string) || t == typeof(CloudBlob))
             {
-                _contract.Add("EventGridTrigger", t);
-                _contract.Add("BlobTrigger", typeof(string));
-                _contract.Add("Uri", typeof(Uri));
-                _contract.Add("Properties", typeof(BlobProperties));
-                _contract.Add("Metadata", typeof(IDictionary<string, string>));
+                contract.Add("EventGridTrigger", t);
+                contract.Add("BlobTrigger", typeof(string));
+                contract.Add("Uri", typeof(Uri));
+                contract.Add("Properties", typeof(BlobProperties));
+                contract.Add("Metadata", typeof(IDictionary<string, string>));
             }
             else
             {
                 // fail
                 return null;
             }
-            return _contract;
+            return contract;
 
         }
         public Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t)
