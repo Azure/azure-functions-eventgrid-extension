@@ -47,9 +47,9 @@ namespace Microsoft.Azure.WebJobs
             {
                 publisher = new DefaultPublisher();
             }
-            else if (String.Equals(publisherName, EventHubArchivePublisher.Name, StringComparison.OrdinalIgnoreCase))
+            else if (String.Equals(publisherName, EventHubCapturePublisher.Name, StringComparison.OrdinalIgnoreCase))
             {
-                publisher = new EventHubArchivePublisher();
+                publisher = new EventHubCapturePublisher();
             }
 
             var contract = publisher?.ExtractBindingContract(parameter.ParameterType);

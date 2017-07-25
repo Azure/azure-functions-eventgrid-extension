@@ -6,9 +6,9 @@ using System.Net;
 
 namespace Microsoft.Azure.WebJobs
 {
-    public class EventHubArchivePublisher : IPublisher
+    public class EventHubCapturePublisher : IPublisher
     {
-        public const string Name = "eventHubArchive";
+        public const string Name = "eventHubCapture";
         private List<IDisposable> _recycles = null;
 
         public string PublisherName
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.WebJobs
             else
             {
                 StorageBlob data = e.Data.ToObject<StorageBlob>();
-                var blob = new CloudBlob(data.fileUrl);
+                var blob = new CloudBlob(data.FileUrl);
                 // set metadata based on https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-functions/functions-bindings-storage-blob.md#trigger-metadata
                 //BlobTrigger.Type string.The triggering blob path
                 bindingData.Add("BlobTrigger", blob.Container.Name + "/" + blob.Name);
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.WebJobs
 
                 if (t == typeof(Stream))
                 {
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
 
                     _recycles = new List<IDisposable>();
                     // SHUN TODO async
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.WebJobs
                 else if (t == typeof(string))
                 {
                     // read all to buffer
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.fileUrl);
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
                     using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
                     {
                         using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))

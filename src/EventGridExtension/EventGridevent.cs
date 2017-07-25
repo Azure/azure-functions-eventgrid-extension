@@ -24,31 +24,31 @@ namespace Microsoft.Azure.WebJobs
 }
          */
         [JsonProperty(PropertyName = "fileUrl")]
-        public Uri fileUrl { get; set; }
+        public Uri FileUrl { get; set; }
 
         [JsonProperty(PropertyName = "fileType")]
-        public string fileType { get; set; }
+        public string FileType { get; set; }
 
         [JsonProperty(PropertyName = "partitionId")]
-        public int partitionId { get; set; }
+        public int PartitionId { get; set; }
 
         [JsonProperty(PropertyName = "sizeInBytes")]
-        public int sizeInBytes { get; set; }
+        public int SizeInBytes { get; set; }
 
         [JsonProperty(PropertyName = "eventCount")]
-        public int eventCount { get; set; }
+        public int EventCount { get; set; }
 
         [JsonProperty(PropertyName = "firstSequenceNumber")]
-        public int firstSequenceNumber { get; set; }
+        public int FirstSequenceNumber { get; set; }
 
         [JsonProperty(PropertyName = "lastSequenceNumber")]
-        public int lastSequenceNumber { get; set; }
+        public int LastSequenceNumber { get; set; }
 
         [JsonProperty(PropertyName = "firstEnqueueTime")]
-        public DateTime firstEnqueueTime { get; set; }
+        public DateTime FirstEnqueueTime { get; set; }
 
         [JsonProperty(PropertyName = "lastEnqueueTime")]
-        public DateTime lastEnqueueTime { get; set; }
+        public DateTime LastEnqueueTime { get; set; }
 
     }
 

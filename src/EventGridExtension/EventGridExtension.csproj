@@ -129,7 +129,7 @@
     <Compile Include="DefaultPublisher.cs" />
     <Compile Include="EventGridevent.cs" />
     <Compile Include="EventGridListener.cs" />
-    <Compile Include="EventHubArchivePublisher.cs" />
+    <Compile Include="EventHubCapturePublisher.cs" />
     <Compile Include="IPublisher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="EventGridExtensionConfig.cs" />
