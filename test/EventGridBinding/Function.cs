@@ -11,9 +11,9 @@ namespace EventGridBinding
             Console.WriteLine(value);
         }
 
-        public static void testInputStream([EventGridTrigger("eventhubarchive")] Stream myBlob, string name)
+        public static void testInputStream([EventGridTrigger("eventhubarchive")] Stream myBlob, string blobTrigger)
         {
-            Console.WriteLine($"file name {name}");
+            Console.WriteLine($"file name {blobTrigger}");
             var reader = new StreamReader(myBlob);
             string line = null;
             while (!string.IsNullOrEmpty(line = reader.ReadLine()))

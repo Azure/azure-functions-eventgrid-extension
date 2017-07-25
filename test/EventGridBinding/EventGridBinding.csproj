@@ -144,7 +144,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EventGridExtension\EventGridExtension.csproj">
+    <ProjectReference Include="..\..\src\EventGridExtension\EventGridExtension.csproj">
       <Project>{d04dd2a7-ee6b-44c2-b615-dc380d8d2569}</Project>
       <Name>EventGridExtension</Name>
     </ProjectReference>

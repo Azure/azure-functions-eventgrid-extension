@@ -102,6 +102,11 @@ namespace Microsoft.Azure.WebJobs
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
+                // listenersStore is of Type "EventGridExtensionConfig"
+                if (_listenersStore.IsTest)
+                {
+                    return Task.FromResult<IListener>(new TestListener(context.Executor));
+                }
                 return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, _functionName));
             }
 

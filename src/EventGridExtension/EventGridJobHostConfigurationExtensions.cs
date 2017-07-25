@@ -16,7 +16,7 @@ namespace Microsoft.Azure.WebJobs
 
             // Register our extension configuration provider
             // done by the function runtime
-            config.RegisterExtensionConfigProvider(new EventGridExtensionConfig());
+            config.RegisterExtensionConfigProvider(new EventGridExtensionConfig() { IsTest = true });
         }
     }
 }

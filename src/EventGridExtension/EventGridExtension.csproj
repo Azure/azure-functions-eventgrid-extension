@@ -33,15 +33,6 @@
     <Reference Include="Microsoft.Azure.KeyVault.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Azure.KeyVault.Core.1.0.0\lib\net40\Microsoft.Azure.KeyVault.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Azure.WebJobs, Version=2.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Azure.WebJobs.Core.2.1.0-beta1\lib\net45\Microsoft.Azure.WebJobs.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Azure.WebJobs.Extensions, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Azure.WebJobs.Extensions.2.1.0-beta1\lib\net45\Microsoft.Azure.WebJobs.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Azure.WebJobs.Host, Version=2.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Azure.WebJobs.2.1.0-beta1\lib\net45\Microsoft.Azure.WebJobs.Host.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Data.Edm, Version=5.6.4.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Data.Edm.5.6.4\lib\net40\Microsoft.Data.Edm.dll</HintPath>
     </Reference>
@@ -145,10 +136,25 @@
     <Compile Include="EventGridJobHostConfigurationExtensions.cs" />
     <Compile Include="EventGridTriggerAttribute.cs" />
     <Compile Include="EventGridTriggerAttributeBindingProvider.cs" />
+    <Compile Include="TestListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\azure-webjobs-sdk-extensions\src\WebJobs.Extensions\WebJobs.Extensions.csproj">
+      <Project>{E6F59990-F3A1-469F-A9D8-6D529121D385}</Project>
+      <Name>WebJobs.Extensions</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\azure-webjobs-sdk\src\Microsoft.Azure.WebJobs.Host\WebJobs.Host.csproj">
+      <Project>{0E095CB2-3030-49FF-966C-785F1A55F0C1}</Project>
+      <Name>WebJobs.Host</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\azure-webjobs-sdk\src\Microsoft.Azure.WebJobs\WebJobs.csproj">
+      <Project>{E3F2B2C8-6B8D-4D6A-A3AE-98366C9F3B49}</Project>
+      <Name>WebJobs</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
