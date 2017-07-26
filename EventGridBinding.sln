@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventGridExtension", "src\E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{B40A0AB6-1971-4DE9-954A-DD92AF1694CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventGridBinding", "test\EventGridBinding\EventGridBinding.csproj", "{828D7696-5D52-4AEB-8973-4382E9760094}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventGridBinding", "test\localTests\EventGridBinding.csproj", "{828D7696-5D52-4AEB-8973-4382E9760094}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
