@@ -1,3 +1,0 @@
-WebJobs	D:/azure-webjobs-sdk/src/Microsoft.Azure.WebJobs/WebJobs.csproj	../packages/Microsoft.Azure.WebJobs.Core.2.1.0-beta1/lib/net45/Microsoft.Azure.WebJobs.dll
-WebJobs.Host	D:/azure-webjobs-sdk/src/Microsoft.Azure.WebJobs.Host/WebJobs.Host.csproj	../packages/Microsoft.Azure.WebJobs.2.1.0-beta1/lib/net45/Microsoft.Azure.WebJobs.Host.dll
-WebJobs.Extensions	D:/azure-webjobs-sdk-extensions/src/WebJobs.Extensions/WebJobs.Extensions.csproj	../packages/Microsoft.Azure.WebJobs.Extensions.2.1.0-beta1/lib/net45/Microsoft.Azure.WebJobs.Extensions.dll
