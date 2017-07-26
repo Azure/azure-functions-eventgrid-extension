@@ -3,6 +3,9 @@
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <PackageId>Microsoft.Azure.WebJobs.Extensions.EventGrid</PackageId>
     <Description></Description>
+    <Version>1.0.0-beta1$(VersionSuffix)</Version>
+    <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
+    <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework)=='net461'">
