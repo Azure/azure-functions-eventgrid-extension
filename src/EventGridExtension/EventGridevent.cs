@@ -8,6 +8,18 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs
 {
+    public class SubscriptionValidationResponse
+    {
+        [JsonProperty(PropertyName = "validationResponse")]
+        public string ValidationResponse { get; set; }
+    }
+
+    public class SubscriptionValidationEvent
+    {
+        [JsonProperty(PropertyName = "validationCode")]
+        public string ValidationCode { get; set; }
+    }
+
     public class StorageBlob
     {
         /*
@@ -50,6 +62,41 @@ namespace Microsoft.Azure.WebJobs
         [JsonProperty(PropertyName = "lastEnqueueTime")]
         public DateTime LastEnqueueTime { get; set; }
 
+    }
+
+    public class EventGridFaultyEvent
+    {
+        /*
+{
+  'id': 'eac180e8-92e0-436d-8699-a0324e2a5fef',
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourceGroups/canaryeh/providers/microsoft.eventhub/namespaces/canaryeh',
+  'subject': 'eventhubs/test',
+  'data': '{\""validationCode\"":\""85fe9560-f63f-469b-b40a-5a6327db05e6\""}',  <-- String instead of JObject
+  'eventType': 'Microsoft.EventGrid/SubscriptionValidationEvent',
+  'eventTime': '2017-07-28T00:43:28.6153503Z'
+}
+        */
+
+        [JsonProperty(PropertyName = "topic")]
+        public string Topic { get; set; }
+
+        [JsonProperty(PropertyName = "subject")]
+        public string Subject { get; set; }
+
+        [JsonProperty(PropertyName = "data")]
+        public string Data { get; set; }
+
+        [JsonProperty(PropertyName = "eventType")]
+        public string EventType { get; set; }
+
+        [JsonProperty(PropertyName = "publishTime")]
+        public DateTime PublishTime { get; set; }
+
+        [JsonProperty(PropertyName = "eventTime")]
+        public DateTime EventTime { get; set; }
+
+        [JsonProperty(PropertyName = "id")]
+        public string Id { get; set; }
     }
 
     public class EventGridEvent
