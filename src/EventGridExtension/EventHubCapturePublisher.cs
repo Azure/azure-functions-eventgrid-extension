@@ -24,11 +24,12 @@ namespace Microsoft.Azure.WebJobs
         public Dictionary<string, Type> ExtractBindingContract(Type t)
         {
             var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+            // TODO we can determine the ACTION in this function, so that when calling ExtractBindingData, we don't have to do the comparison again
             if (t == typeof(EventGridEvent))
             {
                 contract.Add("EventGridTrigger", t);
             }
-            else if (t == typeof(Stream) || t == typeof(string) || t == typeof(CloudBlob))
+            else if (t == typeof(Stream) || t == typeof(string) || t == typeof(CloudBlob) || t == typeof(byte[]))
             {
                 contract.Add("EventGridTrigger", t);
                 contract.Add("BlobTrigger", typeof(string));
@@ -44,6 +45,7 @@ namespace Microsoft.Azure.WebJobs
             return contract;
 
         }
+
         public Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t)
         {
             var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -66,36 +68,51 @@ namespace Microsoft.Azure.WebJobs
                 bindingData.Add("Metadata", blob.Metadata);
                 // [Blob("output/copy-{name}")] out string output, does not apply here
                 // bindingData.Add("name", blob.Name);
-
-                if (t == typeof(Stream))
-                {
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
-
-                    _recycles = new List<IDisposable>();
-                    // SHUN TODO async
-                    HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
-                    Stream responseStream = myHttpWebResponse.GetResponseStream();
-                    _recycles.Add(responseStream);
-                    _recycles.Add(myHttpWebResponse);
-
-                    bindingData.Add("EventGridTrigger", responseStream);
-                }
-                else if (t == typeof(string))
-                {
-                    // read all to buffer
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
-                    using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
-                    {
-                        using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))
-                        {
-                            string blobData = responseStream.ReadToEnd();
-                            bindingData.Add("EventGridTrigger", blobData);
-                        }
-                    }
-                }
-                else if (t == typeof(CloudBlob))
+                if (t == typeof(CloudBlob))
                 {
                     bindingData.Add("EventGridTrigger", blob);
+                }
+                else
+                {
+                    // convert from stream 
+                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
+                    if (t == typeof(Stream))
+                    {
+                        _recycles = new List<IDisposable>();
+                        // SHUN TODO async
+                        HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+                        Stream responseStream = myHttpWebResponse.GetResponseStream();
+                        _recycles.Add(responseStream);
+                        _recycles.Add(myHttpWebResponse);
+
+                        bindingData.Add("EventGridTrigger", responseStream);
+                    }
+                    // copy to memory => use case javascript
+                    else if (t == typeof(Byte[]))
+                    {
+                        using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                        {
+                            using (Stream netWorkStream = myHttpWebResponse.GetResponseStream())
+                            {
+                                using (MemoryStream ms = new MemoryStream())
+                                {
+                                    netWorkStream.CopyTo(ms);
+                                    bindingData.Add("EventGridTrigger", ms.ToArray());
+                                }
+                            }
+                        }
+                    }
+                    else if (t == typeof(string))
+                    {
+                        using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                        {
+                            using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))
+                            {
+                                string blobData = responseStream.ReadToEnd();
+                                bindingData.Add("EventGridTrigger", blobData);
+                            }
+                        }
+                    }
                 }
             }
             return bindingData;
