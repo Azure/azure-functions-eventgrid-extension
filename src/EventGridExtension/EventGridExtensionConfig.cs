@@ -3,13 +3,14 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Microsoft.Azure.WebJobs
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
@@ -49,15 +50,43 @@ namespace Microsoft.Azure.WebJobs
 
         private async Task<HttpResponseMessage> ProcessAsync(HttpRequestMessage req)
         {
-            string jsonArray = await req.Content.ReadAsStringAsync();
-            List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
             var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
-
-            if (_listeners.ContainsKey(functionName))
+            if (String.IsNullOrEmpty(functionName) || !_listeners.ContainsKey(functionName))
             {
-                // TODO echo back if its a subscription verification
-                // return different httpResponseMessage
-                var listener = _listeners[functionName];
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+
+            IEnumerable<string> eventTypeHeaders = null;
+            string eventTypeHeader = null;
+            if (req.Headers.TryGetValues("aeg-event-type", out eventTypeHeaders))
+            {
+                eventTypeHeader = eventTypeHeaders.First();
+            }
+
+            if (String.Equals(eventTypeHeader, "SubscriptionValidation", StringComparison.OrdinalIgnoreCase))
+            {
+                string jsonArray = await req.Content.ReadAsStringAsync();
+                SubscriptionValidationEvent validationEvent = null;
+                try
+                {
+                    List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
+                    validationEvent = events[0].Data.ToObject<SubscriptionValidationEvent>();
+                }
+                catch (JsonException)
+                {
+                    // TODO remove once validation use JObject
+                    List<EventGridFaultyEvent> events = JsonConvert.DeserializeObject<List<EventGridFaultyEvent>>(jsonArray);
+                    validationEvent = JsonConvert.DeserializeObject<SubscriptionValidationEvent>(events[0].Data);
+                }
+                SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
+                var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
+                returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
+                return returnMessage;
+            }
+            else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
+            {
+                string jsonArray = await req.Content.ReadAsStringAsync();
+                List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
 
                 foreach (var ev in events)
                 {
@@ -66,13 +95,19 @@ namespace Microsoft.Azure.WebJobs
                         TriggerValue = ev
                     };
 
-                    await listener.Executor.TryExecuteAsync(triggerData, CancellationToken.None);
+                    await _listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None);
                 }
 
                 return new HttpResponseMessage(HttpStatusCode.Accepted);
             }
+            else if (String.Equals(eventTypeHeader, "Unsubscribe", StringComparison.OrdinalIgnoreCase))
+            {
+                // TODO disable function?
+                return new HttpResponseMessage(HttpStatusCode.Accepted);
+            }
 
-            return new HttpResponseMessage(HttpStatusCode.NotFound);
+            return new HttpResponseMessage(HttpStatusCode.BadRequest);
+
         }
     }
 }
