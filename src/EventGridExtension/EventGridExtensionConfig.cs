@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Microsoft.Azure.WebJobs
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>

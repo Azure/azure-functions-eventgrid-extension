@@ -12,7 +12,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.WebJobs
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     internal class EventGridTriggerAttributeBindingProvider : ITriggerBindingProvider
     {

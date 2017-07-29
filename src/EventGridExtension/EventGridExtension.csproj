@@ -6,6 +6,8 @@
     <Version>1.0.0-beta1$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
     <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>
+    <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EventGrid</AssemblyName>
+    <RootNamespace>Microsoft.Azure.WebJobs.Extensions.EventGrid</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework)=='net46'">

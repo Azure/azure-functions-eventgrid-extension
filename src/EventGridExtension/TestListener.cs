@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.WebJobs
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     public class TestListener : Microsoft.Azure.WebJobs.Host.Listeners.IListener
     {
