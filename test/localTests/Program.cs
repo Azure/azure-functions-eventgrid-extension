@@ -14,18 +14,10 @@ namespace EventGridBinding
                 config.UseDevelopmentSettings();
             }
 
-            var ext = new EventGridExtensionConfig();
-            config.AddExtension(ext);
-
-            //config.TypeLocator = new ;
-            //config.JobActivator = new ;
-
-            Function prog = new Function();
+            config.UseEventGrid();
 
             JobHost host = new JobHost(config);
             host.RunAndBlock();
-
-            
         }
     }
 }

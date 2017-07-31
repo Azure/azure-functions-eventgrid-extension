@@ -13,16 +13,24 @@ namespace EventGridBinding
             Console.WriteLine(value);
         }
 
-        public void TestInputStream([EventGridTrigger("eventhubcapture")] Stream myBlob, string blobTrigger)
+        public void TestInputStream([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] Stream myBlob, string blobTrigger)
         {
             Console.WriteLine($"file name {blobTrigger}");
             var reader = new StreamReader(myBlob);
-            string line = null;
-            while (!string.IsNullOrEmpty(line = reader.ReadLine()))
+            Console.WriteLine(reader.ReadToEnd());
+        }
+
+        public void TestByteArray([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] byte[] myBlob)
+        {
+            foreach (var b in myBlob)
             {
-                Console.WriteLine(line);
+                Console.Write(b);
             }
         }
 
+        public void TestString([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] string myBlob)
+        {
+            Console.WriteLine(myBlob);
+        }
     }
 }
