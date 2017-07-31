@@ -14,12 +14,5 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         {
         }
 
-        public EventGridTriggerAttribute(string publisher)
-        {
-            Publisher = publisher;
-        }
-
-        public string Connection { get; set; } = null;
-        public string Publisher { get; }
     }
 }

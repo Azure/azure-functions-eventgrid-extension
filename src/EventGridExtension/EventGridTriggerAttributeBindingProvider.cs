@@ -6,6 +6,8 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,53 +40,41 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            // depends on the publisher, we could have different expectation for paramter
-            // TODO javascript, you cannot sepcify parameterType?
-            string publisherName = attribute.Publisher;
-            IPublisher publisher = null;
-            // factory pattern
-            if (String.IsNullOrEmpty(publisherName))
-            {
-                publisher = new DefaultPublisher();
-            }
-            else if (String.Equals(publisherName, EventHubCapturePublisher.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                // if publisher is EventHubCapture, Connection String is going to be required
-                publisher = new EventHubCapturePublisher(attribute.Connection);
-            }
-
-            var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
-            if (contract == null)
+            if (!isSupportBindingType(parameter.ParameterType))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                    "Can't bind EventGridTriggerAttribute with publisher '{0}' to type '{1}'.", publisherName, parameter.ParameterType));
+                    "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
-            // unsupported publisher is caught in attribute constrcutor
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, publisher, contract));
+
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
 
         }
 
+        public bool isSupportBindingType(Type t)
+        {
+            return (t == typeof(EventGridEvent) || t == typeof(string));
+        }
 
         private class EventGridTriggerBinding : ITriggerBinding
         {
             private readonly ParameterInfo _parameter;
-            private readonly IReadOnlyDictionary<string, Type> _bindingContract;
+            private readonly Dictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
             private readonly string _functionName;
-            private readonly IPublisher _publisher;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, IPublisher publisher, Dictionary<string, Type> contract)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
             {
-                _publisher = publisher;
                 _listenersStore = listenersStore;
                 _parameter = parameter;
                 _functionName = functionName;
-                _bindingContract = contract;
+                _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"data",typeof(JObject) }
+                };
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract
             {
-                // TODO? not per parameter?
                 get { return _bindingContract; }
             }
 
@@ -93,21 +83,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 get { return typeof(EventGridEvent); }
             }
 
-            public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
+            public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                var bindingData = await _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, _publisher.GetArgument(bindingData), _publisher.Recycles);
-                return new TriggerData(valueBinder, bindingData);
+                var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"data", triggerValue.Data}
+                };
+
+                object argument;
+                if (_parameter.ParameterType == typeof(string))
+                {
+                    argument = JsonConvert.SerializeObject(triggerValue, Formatting.Indented);
+                }
+                else
+                {
+                    argument = triggerValue;
+                }
+
+                IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
+                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                // listenersStore is of Type "EventGridExtensionConfig"
-                if (_listenersStore.IsTest)
-                {
-                    return Task.FromResult<IListener>(new TestListener(context.Executor));
-                }
                 return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, _functionName));
             }
 
@@ -141,7 +140,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 private readonly object _value;
                 private List<IDisposable> _disposables = null;
 
-                public EventGridValueBinder(ParameterInfo parameter, object value, List<IDisposable> disposables)
+                public EventGridValueBinder(ParameterInfo parameter, object value, List<IDisposable> disposables = null)
                     : base(parameter.ParameterType)
                 {
                     _value = value;
