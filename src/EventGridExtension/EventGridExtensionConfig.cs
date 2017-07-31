@@ -50,6 +50,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         private async Task<HttpResponseMessage> ProcessAsync(HttpRequestMessage req)
         {
+            // webjobs.script uses req.GetQueryNameValuePairs();
+            // which requires webapi.core...but this does not work for .netframework2.0
+            // TODO change this once webjobs.script is migrated
             var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
             if (String.IsNullOrEmpty(functionName) || !_listeners.ContainsKey(functionName))
             {
