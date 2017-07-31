@@ -19,6 +19,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             Publisher = publisher;
         }
 
+        public string Connection { get; set; } = null;
         public string Publisher { get; }
     }
 }

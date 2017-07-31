@@ -1,8 +1,12 @@
-﻿using Microsoft.WindowsAzure.Storage.Blob;
+﻿using Microsoft.Azure.WebJobs.Host;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
+using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
-using System.Net;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -10,6 +14,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         public const string Name = "eventHubCapture";
         private List<IDisposable> _recycles = null;
+        private StorageCredentials _credentials;
+        public EventHubCapturePublisher(string connectionStringName)
+        {
+            if (String.IsNullOrEmpty(connectionStringName))
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
+                   "Can't bind EventGridTriggerAttribute with publisher '{0}': missing ConnectionString for Storageblob.", Name));
+            }
+            var connectionString = AmbientConnectionStringProvider.Instance.GetConnectionString(connectionStringName);
+            _credentials = CloudStorageAccount.Parse(connectionString).Credentials;
+        }
 
         public string PublisherName
         {
@@ -46,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         }
 
-        public Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t)
+        public async Task<Dictionary<string, object>> ExtractBindingData(EventGridEvent e, Type t)
         {
             var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (t == typeof(EventGridEvent))
@@ -56,7 +71,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             else
             {
                 StorageBlob data = e.Data.ToObject<StorageBlob>();
-                var blob = new CloudBlob(data.FileUrl);
+                var blob = new CloudBlob(data.FileUrl, _credentials);
                 // set metadata based on https://github.com/MicrosoftDocs/azure-docs/blob/master/articles/azure-functions/functions-bindings-storage-blob.md#trigger-metadata
                 //BlobTrigger.Type string.The triggering blob path
                 bindingData.Add("BlobTrigger", blob.Container.Name + "/" + blob.Name);
@@ -75,43 +90,31 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 else
                 {
                     // convert from stream 
-                    HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(data.FileUrl);
+                    var blobStream = await blob.OpenReadAsync();
                     if (t == typeof(Stream))
                     {
                         _recycles = new List<IDisposable>();
-                        // SHUN TODO async
-                        HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
-                        Stream responseStream = myHttpWebResponse.GetResponseStream();
-                        _recycles.Add(responseStream);
-                        _recycles.Add(myHttpWebResponse);
-
-                        bindingData.Add("EventGridTrigger", responseStream);
+                        _recycles.Add(blobStream); // close after function call
+                        bindingData.Add("EventGridTrigger", blobStream);
                     }
                     // copy to memory => use case javascript
                     else if (t == typeof(Byte[]))
                     {
-                        using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                        using (MemoryStream ms = new MemoryStream())
                         {
-                            using (Stream netWorkStream = myHttpWebResponse.GetResponseStream())
-                            {
-                                using (MemoryStream ms = new MemoryStream())
-                                {
-                                    netWorkStream.CopyTo(ms);
-                                    bindingData.Add("EventGridTrigger", ms.ToArray());
-                                }
-                            }
+                            await blobStream.CopyToAsync(ms);
+                            bindingData.Add("EventGridTrigger", ms.ToArray());
                         }
+                        blobStream.Close(); // close before the function call
                     }
                     else if (t == typeof(string))
                     {
-                        using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse())
+                        using (StreamReader responseStream = new StreamReader(blobStream))
                         {
-                            using (StreamReader responseStream = new StreamReader(myHttpWebResponse.GetResponseStream()))
-                            {
-                                string blobData = responseStream.ReadToEnd();
-                                bindingData.Add("EventGridTrigger", blobData);
-                            }
+                            string blobData = await responseStream.ReadToEndAsync();
+                            bindingData.Add("EventGridTrigger", blobData);
                         }
+                        blobStream.Close(); // close before the function call
                     }
                 }
             }

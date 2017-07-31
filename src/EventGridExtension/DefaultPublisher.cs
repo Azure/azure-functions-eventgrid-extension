@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
         }
 
-        public Dictionary<string, object> ExtractBindingData(EventGridEvent e, Type t)
+        public Task<Dictionary<string, object>> ExtractBindingData(EventGridEvent e, Type t)
         {
             var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (t == typeof(EventGridEvent))
@@ -45,13 +46,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 bindingData.Add("EventGridTrigger", JsonConvert.SerializeObject(e, Formatting.Indented));
             }
 
-            return bindingData;
+            return Task.FromResult<Dictionary<string, object>>(bindingData);
         }
 
         public object GetArgument(Dictionary<string, object> bindingData)
         {
             return bindingData["EventGridTrigger"];
         }
-
     }
+
 }

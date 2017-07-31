@@ -49,7 +49,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
             else if (String.Equals(publisherName, EventHubCapturePublisher.Name, StringComparison.OrdinalIgnoreCase))
             {
-                publisher = new EventHubCapturePublisher();
+                // if publisher is EventHubCapture, Connection String is going to be required
+                publisher = new EventHubCapturePublisher(attribute.Connection);
             }
 
             var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
@@ -92,12 +93,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 get { return typeof(EventGridEvent); }
             }
 
-            public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
+            public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                var bindingData = _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
+                var bindingData = await _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
                 IValueBinder valueBinder = new EventGridValueBinder(_parameter, _publisher.GetArgument(bindingData), _publisher.Recycles);
-                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
+                return new TriggerData(valueBinder, bindingData);
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)

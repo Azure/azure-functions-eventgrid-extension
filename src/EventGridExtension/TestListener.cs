@@ -62,7 +62,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': {
-    'fileUrl': 'https://shunsouthcentralus.blob.core.windows.net/archivecontainershun/canaryeh/test/1/2017/07/14/23/09/27.avro',
+    'fileUrl': 'https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt',
     'fileType': 'AzureBlockBlob',
     'partitionId': '1',
     'sizeInBytes': 0,
