@@ -7,6 +7,9 @@ namespace EventGridBinding
     {
         static void Main(string[] args)
         {
+            new Test().MyTest().Wait();
+            return;
+
             var config = new JobHostConfiguration();
 
             if (config.IsDevelopment)

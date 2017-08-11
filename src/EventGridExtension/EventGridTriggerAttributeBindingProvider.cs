@@ -6,6 +6,7 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -53,7 +54,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 publisher = new EventHubCapturePublisher(attribute.Connection);
             }
 
-            var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
+
+            var contract = new Dictionary<string, Type>()
+                {
+                    {  "data", typeof(JObject) }
+            };
+            // var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
             if (contract == null)
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
@@ -96,8 +102,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                var bindingData = await _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, _publisher.GetArgument(bindingData), _publisher.Recycles);
+                // var bindingData = await _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
+                var bindingData = new Dictionary<string, object>()
+                {
+                    {  "data", triggerValue.Data }
+                };
+
+                IValueBinder valueBinder = new EventGridValueBinder(_parameter, triggerValue, _publisher.Recycles);
                 return new TriggerData(valueBinder, bindingData);
             }
 
