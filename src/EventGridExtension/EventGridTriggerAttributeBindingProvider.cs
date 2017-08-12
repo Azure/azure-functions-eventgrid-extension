@@ -6,6 +6,8 @@ using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,32 +40,32 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            // depends on the publisher, we could have different expectation for paramter
-            // TODO javascript, you cannot sepcify parameterType?
-            string publisherName = attribute.Publisher;
-            IPublisher publisher = null;
-            // factory pattern
-            if (String.IsNullOrEmpty(publisherName))
-            {
-                publisher = new DefaultPublisher();
-            }
-            else if (String.Equals(publisherName, EventHubCapturePublisher.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                // if publisher is EventHubCapture, Connection String is going to be required
-                publisher = new EventHubCapturePublisher(attribute.Connection);
-            }
-
-            var contract = publisher?.ExtractBindingContract(parameter.ParameterType);
+            var contract = ExtractBindingContract(parameter.ParameterType);
             if (contract == null)
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                    "Can't bind EventGridTriggerAttribute with publisher '{0}' to type '{1}'.", publisherName, parameter.ParameterType));
+                    "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
-            // unsupported publisher is caught in attribute constrcutor
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, publisher, contract));
+
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, contract));
 
         }
 
+        public Dictionary<string, Type> ExtractBindingContract(Type t)
+        {
+            if (t == typeof(EventGridEvent) || t == typeof(string))
+            {
+                var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+                // for javascript, 1st attempt is to return JSON string of EventGridEvent
+                contract.Add("EventGridTrigger", t);
+                contract.Add("data", typeof(JObject));
+                return contract;
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         private class EventGridTriggerBinding : ITriggerBinding
         {
@@ -71,15 +73,32 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             private readonly IReadOnlyDictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
             private readonly string _functionName;
-            private readonly IPublisher _publisher;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, IPublisher publisher, Dictionary<string, Type> contract)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, Dictionary<string, Type> contract)
             {
-                _publisher = publisher;
                 _listenersStore = listenersStore;
                 _parameter = parameter;
                 _functionName = functionName;
                 _bindingContract = contract;
+            }
+            public Task<Dictionary<string, object>> ExtractBindingData(EventGridEvent e, Type t)
+            {
+                var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                if (t == typeof(EventGridEvent))
+                {
+                    bindingData.Add("EventGridTrigger", e);
+                }
+                else if (t == typeof(string))
+                {
+                    bindingData.Add("EventGridTrigger", JsonConvert.SerializeObject(e, Formatting.Indented));
+                }
+                bindingData.Add("data", e.Data);
+
+                return Task.FromResult<Dictionary<string, object>>(bindingData);
+            }
+            public object GetArgument(Dictionary<string, object> bindingData)
+            {
+                return bindingData["EventGridTrigger"];
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract
@@ -96,8 +115,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                var bindingData = await _publisher.ExtractBindingData(triggerValue, _parameter.ParameterType);
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, _publisher.GetArgument(bindingData), _publisher.Recycles);
+                var bindingData = await ExtractBindingData(triggerValue, _parameter.ParameterType);
+                IValueBinder valueBinder = new EventGridValueBinder(_parameter, GetArgument(bindingData));
                 return new TriggerData(valueBinder, bindingData);
             }
 
@@ -141,7 +160,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 private readonly object _value;
                 private List<IDisposable> _disposables = null;
 
-                public EventGridValueBinder(ParameterInfo parameter, object value, List<IDisposable> disposables)
+                public EventGridValueBinder(ParameterInfo parameter, object value, List<IDisposable> disposables = null)
                     : base(parameter.ParameterType)
                 {
                     _value = value;

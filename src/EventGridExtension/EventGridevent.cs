@@ -16,50 +16,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public string ValidationCode { get; set; }
     }
 
-    public class StorageBlob
-    {
-        /*
-{
-    "fileUrl": "https://shunsouthcentralus.blob.core.windows.net/archivecontainershun/canaryeh/test/1/2017/07/14/23/09/27.avro",
-    "fileType": "AzureBlockBlob",
-    "partitionId": "1",
-    "sizeInBytes": 0,
-    "eventCount": 0,
-    "firstSequenceNumber": -1,
-    "lastSequenceNumber": -1,
-    "firstEnqueueTime": "0001-01-01T00:00:00",
-    "lastEnqueueTime": "0001-01-01T00:00:00"
-}
-         */
-        [JsonProperty(PropertyName = "fileUrl")]
-        public Uri FileUrl { get; set; }
-
-        [JsonProperty(PropertyName = "fileType")]
-        public string FileType { get; set; }
-
-        [JsonProperty(PropertyName = "partitionId")]
-        public int PartitionId { get; set; }
-
-        [JsonProperty(PropertyName = "sizeInBytes")]
-        public int SizeInBytes { get; set; }
-
-        [JsonProperty(PropertyName = "eventCount")]
-        public int EventCount { get; set; }
-
-        [JsonProperty(PropertyName = "firstSequenceNumber")]
-        public int FirstSequenceNumber { get; set; }
-
-        [JsonProperty(PropertyName = "lastSequenceNumber")]
-        public int LastSequenceNumber { get; set; }
-
-        [JsonProperty(PropertyName = "firstEnqueueTime")]
-        public DateTime FirstEnqueueTime { get; set; }
-
-        [JsonProperty(PropertyName = "lastEnqueueTime")]
-        public DateTime LastEnqueueTime { get; set; }
-
-    }
-
     public class EventGridEvent
     {
         /*
@@ -80,7 +36,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         [JsonProperty(PropertyName = "subject")]
         public string Subject { get; set; }
 
-        // the content of this depends on the publisher
         [JsonProperty(PropertyName = "data")]
         public JObject Data { get; set; }
 
