@@ -16,13 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        private bool _isTest = false;
         private TraceWriter _tracer = null;
-        public bool IsTest
-        {
-            get { return _isTest; }
-            set { _isTest = value; }
-        }
 
         public void Initialize(ExtensionConfigContext context)
         {

@@ -36,6 +36,7 @@ namespace Extension.tests
         public JobhostEndToEnd()
         {
             JobHostConfiguration config = new JobHostConfiguration();
+            config.DashboardConnectionString = null;
             config.AddExtension(new EventGridExtensionConfig());
             config.AddExtension(new TestExtensionConfig());
             host = new JobHost(config);
