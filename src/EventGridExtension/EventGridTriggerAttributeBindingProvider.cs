@@ -40,70 +40,41 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            var contract = ExtractBindingContract(parameter.ParameterType);
-            if (contract == null)
+            if (!isSupportBindingType(parameter.ParameterType))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
 
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name, contract));
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
 
         }
 
-        public Dictionary<string, Type> ExtractBindingContract(Type t)
+        public bool isSupportBindingType(Type t)
         {
-            if (t == typeof(EventGridEvent) || t == typeof(string))
-            {
-                var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-                // for javascript, 1st attempt is to return JSON string of EventGridEvent
-                contract.Add("EventGridTrigger", t);
-                contract.Add("data", typeof(JObject));
-                return contract;
-            }
-            else
-            {
-                return null;
-            }
+            return (t == typeof(EventGridEvent) || t == typeof(string));
         }
 
         private class EventGridTriggerBinding : ITriggerBinding
         {
             private readonly ParameterInfo _parameter;
-            private readonly IReadOnlyDictionary<string, Type> _bindingContract;
+            private readonly Dictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
             private readonly string _functionName;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName, Dictionary<string, Type> contract)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
                 _functionName = functionName;
-                _bindingContract = contract;
-            }
-            public Task<Dictionary<string, object>> ExtractBindingData(EventGridEvent e, Type t)
-            {
-                var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-                if (t == typeof(EventGridEvent))
+                _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
-                    bindingData.Add("EventGridTrigger", e);
-                }
-                else if (t == typeof(string))
-                {
-                    bindingData.Add("EventGridTrigger", JsonConvert.SerializeObject(e, Formatting.Indented));
-                }
-                bindingData.Add("data", e.Data);
-
-                return Task.FromResult<Dictionary<string, object>>(bindingData);
-            }
-            public object GetArgument(Dictionary<string, object> bindingData)
-            {
-                return bindingData["EventGridTrigger"];
+                    {"data",typeof(JObject) }
+                };
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract
             {
-                // TODO? not per parameter?
                 get { return _bindingContract; }
             }
 
@@ -112,12 +83,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 get { return typeof(EventGridEvent); }
             }
 
-            public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
+            public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 EventGridEvent triggerValue = value as EventGridEvent;
-                var bindingData = await ExtractBindingData(triggerValue, _parameter.ParameterType);
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, GetArgument(bindingData));
-                return new TriggerData(valueBinder, bindingData);
+                var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    {"data", triggerValue.Data}
+                };
+
+                object argument;
+                if (_parameter.ParameterType == typeof(string))
+                {
+                    argument = JsonConvert.SerializeObject(triggerValue, Formatting.Indented);
+                }
+                else
+                {
+                    argument = triggerValue;
+                }
+
+                IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
+                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
