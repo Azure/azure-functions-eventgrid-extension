@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid;
+﻿using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.EventGrid;
 using System;
 using System.IO;
 
@@ -10,27 +11,18 @@ namespace EventGridBinding
         // TODO test fields
         public void TestEventGrid([EventGridTrigger] EventGridEvent value)
         {
+            Console.WriteLine(value.ToString());
+        }
+
+        public void TestEventGridToString([EventGridTrigger] string value)
+        {
             Console.WriteLine(value);
         }
 
-        public void TestInputStream([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] Stream myBlob, string blobTrigger)
+        public void TestBlobStream([EventGridTrigger] EventGridEvent value, [Blob("{data.container}/{data.blob}", FileAccess.Read, Connection = "ShunTestConnectionString")]Stream myBlob)
         {
-            Console.WriteLine($"file name {blobTrigger}");
             var reader = new StreamReader(myBlob);
             Console.WriteLine(reader.ReadToEnd());
-        }
-
-        public void TestByteArray([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] byte[] myBlob)
-        {
-            foreach (var b in myBlob)
-            {
-                Console.Write(b);
-            }
-        }
-
-        public void TestString([EventGridTrigger("eventhubcapture", Connection = "ShunTestConnectionString")] string myBlob)
-        {
-            Console.WriteLine(myBlob);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs.Host.Config;
+﻿using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Newtonsoft.Json;
 using System;
@@ -15,12 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        private bool _isTest = false;
-        public bool IsTest
-        {
-            get { return _isTest; }
-            set { _isTest = value; }
-        }
+        private TraceWriter _tracer = null;
 
         public void Initialize(ExtensionConfigContext context)
         {
@@ -28,6 +24,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 throw new ArgumentNullException("context");
             }
+            else if (context.Trace == null)
+            {
+                throw new ArgumentNullException("context.Trace");
+            }
+            _tracer = context.Trace;
 
             Uri url = context.GetWebhookHandler();
 
@@ -50,6 +51,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         private async Task<HttpResponseMessage> ProcessAsync(HttpRequestMessage req)
         {
+            // webjobs.script uses req.GetQueryNameValuePairs();
+            // which requires webapi.core...but this does not work for .netframework2.0
+            // TODO change this once webjobs.script is migrated
             var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
             if (String.IsNullOrEmpty(functionName) || !_listeners.ContainsKey(functionName))
             {
@@ -67,20 +71,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
                 SubscriptionValidationEvent validationEvent = null;
-                try
-                {
-                    List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
-                    validationEvent = events[0].Data.ToObject<SubscriptionValidationEvent>();
-                }
-                catch (JsonException)
-                {
-                    // TODO remove once validation use JObject
-                    List<EventGridFaultyEvent> events = JsonConvert.DeserializeObject<List<EventGridFaultyEvent>>(jsonArray);
-                    validationEvent = JsonConvert.DeserializeObject<SubscriptionValidationEvent>(events[0].Data);
-                }
+                List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
+                validationEvent = events[0].Data.ToObject<SubscriptionValidationEvent>();
                 SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
+                _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
+                    $"perform handshake with eventGrid for endpoint: {req.RequestUri}"));
                 return returnMessage;
             }
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
