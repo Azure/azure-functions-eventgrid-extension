@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using Xunit;
 using System.IO;
+using System;
+using System.Threading.Tasks;
 
 namespace Extension.tests
 {
@@ -31,19 +33,11 @@ namespace Extension.tests
         const string shunBlob = @"GoodBye World
 	---Confused Dev";
         static private string functionOut = null;
-        private JobHost host;
 
-        public JobhostEndToEnd()
-        {
-            JobHostConfiguration config = new JobHostConfiguration();
-            config.DashboardConnectionString = null;
-            config.AddExtension(new EventGridExtensionConfig());
-            config.AddExtension(new TestExtensionConfig());
-            host = new JobHost(config);
-        }
+
 
         [Fact]
-        public void ConsumeEventGridEventTest()
+        public async Task ConsumeEventGridEventTest()
         {
 
             EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(singleEvent);
@@ -51,44 +45,53 @@ namespace Extension.tests
                 { "value", eve }
             };
 
-            var method = typeof(JobhostEndToEnd).GetMethod("TestEventGrid");
-            host.CallAsync(method, args).Wait();
+            var host = TestHelpers.NewHost<MyProg1>();
+
+            await host.CallAsync("MyProg1.TestEventGrid", args);
             Assert.Equal(functionOut, eve.Subject);
             functionOut = null;
 
-            method = typeof(JobhostEndToEnd).GetMethod("TestEventGridToString");
-            host.CallAsync(method, args).Wait();
+            await host.CallAsync("MyProg1.TestEventGridToString", args);
             Assert.Equal(functionOut, eve.Subject);
             functionOut = null;
         }
 
         [Fact]
-        public void UseInputBlobBinding()
+        public async Task UseInputBlobBinding()
         {
             EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
 
-            var method = typeof(JobhostEndToEnd).GetMethod("TestBlobStream");
-            host.CallAsync(method, args).Wait();
+            var host = TestHelpers.NewHost<MyProg3>();
+
+            await host.CallAsync("MyProg3.TestBlobStream", args);
             Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", functionOut);
             functionOut = null;
         }
 
-        public void TestEventGrid([EventGridTrigger] EventGridEvent value)
+        public class MyProg1
         {
-            functionOut = value.Subject;
+            public void TestEventGrid([EventGridTrigger] EventGridEvent value)
+            {
+                functionOut = value.Subject;
+            }
+       
+            public void TestEventGridToString([EventGridTrigger] string value)
+            {
+                functionOut = JsonConvert.DeserializeObject<EventGridEvent>(value).Subject;
+            }
         }
 
-        public void TestEventGridToString([EventGridTrigger] string value)
+        public class MyProg3
         {
-            functionOut = JsonConvert.DeserializeObject<EventGridEvent>(value).Subject;
-        }
-
-        public void TestBlobStream([EventGridTrigger] EventGridEvent value, [BindingData("{data.fileUrl}")]string autoResolve)
-        {
-            functionOut = autoResolve;
+            public void TestBlobStream(
+            [EventGridTrigger] EventGridEvent value,
+            [BindingData("{data.fileUrl}")] string autoResolve)
+            {
+                functionOut = autoResolve;
+            }
         }
     }
 }
