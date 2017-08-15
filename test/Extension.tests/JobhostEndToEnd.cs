@@ -30,11 +30,7 @@ namespace Extension.tests
   },
   'publishTime': '2017-07-14T23:10:29.5004788Z'
 }";
-        const string shunBlob = @"GoodBye World
-	---Confused Dev";
         static private string functionOut = null;
-
-
 
         [Fact]
         public async Task ConsumeEventGridEventTest()
@@ -77,7 +73,7 @@ namespace Extension.tests
             {
                 functionOut = value.Subject;
             }
-       
+
             public void TestEventGridToString([EventGridTrigger] string value)
             {
                 functionOut = JsonConvert.DeserializeObject<EventGridEvent>(value).Subject;

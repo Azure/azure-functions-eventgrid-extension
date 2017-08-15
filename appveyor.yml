@@ -36,7 +36,9 @@ build_script:
     dotnet build -v q
 
     dotnet pack src\EventGridExtension\EventGridExtension.csproj -o ..\..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
-
+test_script:
+- ps: >-
+    dotnet test .\test\Extension.tests\ -v q --no-build
 artifacts:
 - path: buildoutput\*.nupkg
   name: Binaries
