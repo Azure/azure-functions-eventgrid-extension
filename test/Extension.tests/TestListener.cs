@@ -1,17 +1,15 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using Xunit;
-using System.IO;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Host.Config;
-using System.Net.Http;
-using System.Threading;
+﻿using System;
 using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.EventGrid;
+using Microsoft.Azure.WebJobs.Host.Config;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
@@ -91,6 +89,43 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         }
 
+        [Fact]
+        public async Task TestDispatchGeneric()
+        {
+            var ext = new EventGridExtensionConfig();
+
+            var host = TestHelpers.NewHost<MyProg2>(ext);
+
+            await host.StartAsync(); // add listener 
+
+            var request = CreateDispatchRequest("TestEventGridGeneric", new EventGridEvent<FakePayload>
+            {
+                Subject = "One",
+                Data = new FakePayload
+                {
+                    Prop = "alpha"
+                }
+            },
+            new EventGridEvent<FakePayload>
+            {
+                Subject = "Two",
+                Data = new FakePayload
+                {
+                    Prop = "beta"
+                }
+            });
+            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
+            var response = await handler.ConvertAsync(request, CancellationToken.None);
+
+            // Verify that the user function was dispatched twice, in order. 
+            // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
+            Assert.Equal("[Dispatch:One,alpha,alpha][Dispatch:Two,beta,beta]", _log.ToString());
+
+            // TODO - Verify that we return from webhook before the dispatch is finished 
+            // https://github.com/Azure/azure-functions-eventing-extension/issues/10
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+
         static HttpRequestMessage CreateUnsubscribeRequest(string funcName)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
@@ -98,7 +133,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             return request;
         }
 
-        static HttpRequestMessage CreateDispatchRequest(string funcName, params EventGridEvent[] items)
+        static HttpRequestMessage CreateDispatchRequest<T>(string funcName, params EventGridEvent<T>[] items)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
             request.Headers.Add("aeg-event-type", "Notification");
@@ -121,6 +156,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [BindingData("{data.prop}")] string prop)
             {
                 _log.Append("[Dispatch:" + value.Subject + "," + prop + "]");
+            }
+        }
+
+        public class MyProg2
+        {
+            public void TestEventGridGeneric(
+                [EventGridTrigger] EventGridEvent<FakePayload> value,
+                [BindingData("{data.prop}")] string prop)
+            {
+                _log.Append("[Dispatch:" + value.Subject + "," + value.Data.Prop + "," + prop + "]");
             }
         }
     }

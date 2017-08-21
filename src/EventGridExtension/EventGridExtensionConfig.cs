@@ -1,8 +1,4 @@
-﻿using Microsoft.Azure.WebJobs.Host;
-using Microsoft.Azure.WebJobs.Host.Config;
-using Microsoft.Azure.WebJobs.Host.Executors;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -10,6 +6,11 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.WebJobs.Host.Config;
+using Microsoft.Azure.WebJobs.Host.Executors;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -70,9 +71,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             if (String.Equals(eventTypeHeader, "SubscriptionValidation", StringComparison.OrdinalIgnoreCase))
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
-                SubscriptionValidationEvent validationEvent = null;
-                List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
-                validationEvent = events[0].Data.ToObject<SubscriptionValidationEvent>();
+                JArray events = JsonConvert.DeserializeObject<JArray>(jsonArray);
+                SubscriptionValidationEvent validationEvent = events[0].Value<SubscriptionValidationEvent>("data");
                 SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
-                List<EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridEvent>>(jsonArray);
+                JArray events = JsonConvert.DeserializeObject<JArray>(jsonArray);
 
                 foreach (var ev in events)
                 {

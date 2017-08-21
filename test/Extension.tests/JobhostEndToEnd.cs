@@ -1,9 +1,9 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using Xunit;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public async Task ConsumeEventGridEventTest()
         {
 
-            EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
+            JObject eve = JsonConvert.DeserializeObject<JObject>(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
@@ -23,18 +23,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<MyProg1>();
 
             await host.CallAsync("MyProg1.TestEventGrid", args);
-            Assert.Equal(functionOut, eve.Subject);
+            Assert.Equal(functionOut, eve["subject"].Value<string>());
             functionOut = null;
 
             await host.CallAsync("MyProg1.TestEventGridToString", args);
-            Assert.Equal(functionOut, eve.Subject);
+            Assert.Equal(functionOut, eve["subject"].Value<string>());
             functionOut = null;
         }
 
         [Fact]
         public async Task UseInputBlobBinding()
         {
-            EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
+            JObject eve = JsonConvert.DeserializeObject<JObject>(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };

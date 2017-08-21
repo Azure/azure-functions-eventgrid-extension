@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -16,7 +16,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public string ValidationCode { get; set; }
     }
 
-    public class EventGridEvent
+    public class EventGridEvent : EventGridEvent<JObject>
+    {
+    }
+
+    public class EventGridEvent<TEventData>
     {
         /*
 {
@@ -37,7 +41,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public string Subject { get; set; }
 
         [JsonProperty(PropertyName = "data")]
-        public JObject Data { get; set; }
+        public TEventData Data { get; set; }
 
         [JsonProperty(PropertyName = "eventType")]
         public string EventType { get; set; }
