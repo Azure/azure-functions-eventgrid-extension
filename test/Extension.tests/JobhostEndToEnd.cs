@@ -1,10 +1,7 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EventGrid;
+﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using Xunit;
-using System.IO;
-using System;
 using System.Threading.Tasks;
 
 namespace Extension.tests

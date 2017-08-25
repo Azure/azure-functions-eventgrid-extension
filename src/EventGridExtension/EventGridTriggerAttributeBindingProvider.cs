@@ -85,7 +85,22 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
-                EventGridEvent triggerValue = value as EventGridEvent;
+                // convert value to EventGridEvent, extract {data} as JObject
+                EventGridEvent triggerValue = null;
+                if (value is string)
+                {
+                    triggerValue = JsonConvert.DeserializeObject<EventGridEvent>((string)value);
+                }
+                else
+                {
+                    triggerValue = value as EventGridEvent;
+                }
+
+                if (triggerValue == null)
+                {
+                    throw new InvalidOperationException($"Unable to bind {value} to type {_parameter.ParameterType}");
+                }
+
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
                     {"data", triggerValue.Data}
