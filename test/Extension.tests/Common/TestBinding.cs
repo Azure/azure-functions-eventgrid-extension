@@ -3,7 +3,7 @@ using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Config;
 using System;
 
-namespace Extension.tests
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     [Binding]
     public class BindingDataAttribute : Attribute

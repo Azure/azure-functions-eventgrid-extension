@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             return (t == typeof(EventGridEvent) || t == typeof(string));
         }
 
-        private class EventGridTriggerBinding : ITriggerBinding
+        internal class EventGridTriggerBinding : ITriggerBinding
         {
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
@@ -85,7 +85,31 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
-                EventGridEvent triggerValue = value as EventGridEvent;
+                // convert value to EventGridEvent, extract {data} as JObject
+                EventGridEvent triggerValue = null;
+                if (value is string stringValue)
+                {
+                    try
+                    {
+                        triggerValue = JsonConvert.DeserializeObject<EventGridEvent>(stringValue);
+                    }
+                    catch (Exception)
+                    {
+                        throw new FormatException($"Unable to parse {stringValue} to {typeof(EventGridEvent)}");
+                    }
+
+                }
+                else
+                {
+                    // default casting
+                    triggerValue = value as EventGridEvent;
+                }
+
+                if (triggerValue == null)
+                {
+                    throw new InvalidOperationException($"Unable to bind {value} to type {_parameter.ParameterType}");
+                }
+
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
                     {"data", triggerValue.Data}

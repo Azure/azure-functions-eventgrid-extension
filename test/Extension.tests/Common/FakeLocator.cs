@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Extension.tests
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class FakeTypeLocator<T> : ITypeLocator
     {
