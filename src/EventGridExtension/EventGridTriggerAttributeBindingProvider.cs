@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             return (t == typeof(EventGridEvent) || t == typeof(string));
         }
 
-        private class EventGridTriggerBinding : ITriggerBinding
+        internal class EventGridTriggerBinding : ITriggerBinding
         {
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
@@ -89,7 +89,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 EventGridEvent triggerValue = null;
                 if (value is string)
                 {
-                    triggerValue = JsonConvert.DeserializeObject<EventGridEvent>((string)value);
+                    try
+                    {
+                        triggerValue = JsonConvert.DeserializeObject<EventGridEvent>((string)value);
+                    }
+                    catch (Exception)
+                    {
+                        throw new FormatException($"Unable to parse {value} to {typeof(EventGridEvent)}");
+                    }
+
                 }
                 else
                 {

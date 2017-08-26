@@ -13,11 +13,11 @@ using System.Net;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace Extension.tests
+namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class TestListener : IWebHookProvider
-    { 
-    
+    {
+
         Uri IWebHookProvider.GetUrl(IExtensionConfigProvider extension)
         {
             // Called by configuration registration. URI here doesn't matter.
@@ -44,7 +44,7 @@ namespace Extension.tests
 
 
             var request = CreateUnsubscribeRequest("TestEventGrid");
-            IAsyncConverter <HttpRequestMessage, HttpResponseMessage> handler = ext;
+            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             var response = await handler.ConvertAsync(request, CancellationToken.None);
 
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -65,11 +65,11 @@ namespace Extension.tests
 
             var request = CreateDispatchRequest("TestEventGrid", new EventGridEvent
             {
-                 Subject = "One",
-                 Data = JObject.FromObject(new FakePayload
-                 {
-                     Prop = "alpha"
-                 })
+                Subject = "One",
+                Data = JObject.FromObject(new FakePayload
+                {
+                    Prop = "alpha"
+                })
             },
             new EventGridEvent
             {
@@ -103,8 +103,8 @@ namespace Extension.tests
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
             request.Headers.Add("aeg-event-type", "Notification");
             request.Content = new StringContent(
-                JsonConvert.SerializeObject(items), 
-                Encoding.UTF8, 
+                JsonConvert.SerializeObject(items),
+                Encoding.UTF8,
                 "application/json");
             return request;
         }
