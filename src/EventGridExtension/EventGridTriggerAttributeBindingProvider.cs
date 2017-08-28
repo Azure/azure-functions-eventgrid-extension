@@ -87,20 +87,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 // convert value to EventGridEvent, extract {data} as JObject
                 EventGridEvent triggerValue = null;
-                if (value is string)
+                if (value is string stringValue)
                 {
                     try
                     {
-                        triggerValue = JsonConvert.DeserializeObject<EventGridEvent>((string)value);
+                        triggerValue = JsonConvert.DeserializeObject<EventGridEvent>(stringValue);
                     }
                     catch (Exception)
                     {
-                        throw new FormatException($"Unable to parse {value} to {typeof(EventGridEvent)}");
+                        throw new FormatException($"Unable to parse {stringValue} to {typeof(EventGridEvent)}");
                     }
 
                 }
                 else
                 {
+                    // default casting
                     triggerValue = value as EventGridEvent;
                 }
 
