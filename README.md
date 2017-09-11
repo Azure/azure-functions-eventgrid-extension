@@ -1,5 +1,5 @@
-# Eventing Extension for Azure Functions
-Information coming soon :)
+# Event Grid Extension for Azure Functions
+This extension provides functionality for recieving Event Grid webhook calls in Azure Functions, allowing you to easily write functions that respond to any event published to Event Grid.
 
 ## License
 
