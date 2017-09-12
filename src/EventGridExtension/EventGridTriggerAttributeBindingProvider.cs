@@ -109,7 +109,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
                 var jsonObject = value as JObject;
+
+                if(jsonObject == null)
+                {
+                    throw new InvalidOperationException($"The value specified for binding was of type {value.GetType().FullName}, but only {typeof(JObject).Name} is supported.");
+                }
+
                 object argument;
                 object data;
 

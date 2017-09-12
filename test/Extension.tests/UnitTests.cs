@@ -1,10 +1,10 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+﻿using System;
+using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Reflection;
-using System.Threading.Tasks;
 using Xunit;
 using static Microsoft.Azure.WebJobs.Extensions.EventGrid.EventGridTriggerAttributeBindingProvider;
 
@@ -12,42 +12,60 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class UnitTests
     {
-        private void DummyMethod(EventGridEvent e)
+        private void TestFunction(EventGridEvent e)
         {
         }
 
         [Fact]
-        public async Task bindAsyncTest()
+        public async Task BindAsyncThrowsForNullValue()
         {
-            MethodBase methodbase = this.GetType().GetMethod("DummyMethod", BindingFlags.NonPublic | BindingFlags.Instance);
-            ParameterInfo[] arrayParam = methodbase.GetParameters();
+            var testFunctionMethod = this.GetType().GetMethod(nameof(TestFunction), BindingFlags.NonPublic | BindingFlags.Instance);
+            var testFunctionMethodParameters = testFunctionMethod.GetParameters();
 
-            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, null);
-            // given GventGridEvent
-            EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
-            JObject data = eve.Data;
+            var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
 
-            ITriggerData triggerDataWithEvent = await binding.BindAsync(eve, null);
-            Assert.Equal(data, triggerDataWithEvent.BindingData["data"]);
-
-            ITriggerData triggerDataWithString = await binding.BindAsync(FakeData.singleEvent, null);
-            Assert.Equal(data, triggerDataWithString.BindingData["data"]);
-
-            // test invalid, batch of events
-            FormatException formatException = await Assert.ThrowsAsync<FormatException>(() => binding.BindAsync(FakeData.arrayOfOneEvent, null));
-            Assert.Equal($"Unable to parse {FakeData.arrayOfOneEvent} to {typeof(EventGridEvent)}", formatException.Message);
-
-            // test invalid, random object
-            var testObject = new TestClass();
-            InvalidOperationException invalidException = await Assert.ThrowsAsync<InvalidOperationException>(() => binding.BindAsync(testObject, null));
-            Assert.Equal($"Unable to bind {testObject} to type {arrayParam[0].ParameterType}", invalidException.Message);
+            try
+            {
+                await binding.BindAsync(null, null);
+            }
+            catch (ArgumentNullException exception)
+            {
+                Assert.Equal("value", exception.ParamName);
+            }
         }
 
-        private class TestClass
+        [Fact]
+        public async Task BindAsyncThrowsForNonJObject()
+        {
+            var testFunctionMethod = this.GetType().GetMethod(nameof(TestFunction), BindingFlags.NonPublic | BindingFlags.Instance);
+            var testFunctionMethodParameters = testFunctionMethod.GetParameters();
+
+            var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
+
+            Assert.Throws<InvalidOperationException>(() => 
+                binding.BindAsync(new InvalidBindingValue(), null).GetAwaiter().GetResult());
+        }
+
+        [Fact]
+        public async Task BindAsyncProvidesCorrectBindingData()
+        {
+            var testFunctionMethod = this.GetType().GetMethod(nameof(TestFunction), BindingFlags.NonPublic | BindingFlags.Instance);
+            var testFunctionMethodParameters = testFunctionMethod.GetParameters();
+
+            var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
+
+            JObject fullJsonEvent = JsonConvert.DeserializeObject<JObject>(FakeData.singleEvent);
+            JObject expectedJsonEventData = fullJsonEvent["data"].Value<JObject>();
+
+            ITriggerData triggerDataWithEvent = await binding.BindAsync(fullJsonEvent, null);
+            Assert.Equal(expectedJsonEventData, triggerDataWithEvent.BindingData["data"]);
+        }
+
+        private class InvalidBindingValue
         {
             public override string ToString()
             {
-                return "test object";
+                return "This is an invalid binding value.";
             }
         }
     }
