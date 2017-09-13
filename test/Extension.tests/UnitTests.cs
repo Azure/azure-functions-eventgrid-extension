@@ -24,14 +24,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
 
-            try
-            {
-                await binding.BindAsync(null, null);
-            }
-            catch (ArgumentNullException exception)
-            {
-                Assert.Equal("value", exception.ParamName);
-            }
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                "value", 
+                () => binding.BindAsync(null, null));
         }
 
         [Fact]
@@ -42,8 +37,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
 
-            Assert.Throws<InvalidOperationException>(() => 
-                binding.BindAsync(new InvalidBindingValue(), null).GetAwaiter().GetResult());
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => binding.BindAsync(new InvalidBindingValue(), null));
         }
 
         [Fact]
@@ -54,10 +49,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var binding = new EventGridTriggerBinding(testFunctionMethodParameters[0], null, null);
 
-            JObject fullJsonEvent = JsonConvert.DeserializeObject<JObject>(FakeData.singleEvent);
-            JObject expectedJsonEventData = fullJsonEvent["data"].Value<JObject>();
+            var fullJsonEvent = JsonConvert.DeserializeObject<JObject>(FakeData.singleEvent);
+            var expectedJsonEventData = fullJsonEvent["data"].Value<JObject>();
 
             ITriggerData triggerDataWithEvent = await binding.BindAsync(fullJsonEvent, null);
+
             Assert.Equal(expectedJsonEventData, triggerDataWithEvent.BindingData["data"]);
         }
 
