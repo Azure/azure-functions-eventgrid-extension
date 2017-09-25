@@ -14,7 +14,7 @@
     <PackageLicenseUrl>http://www.microsoft.com/web/webpi/eula/aspnetcomponent_rtw_enu.htm</PackageLicenseUrl>
     <PackageProjectUrl />
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/Azure/azure-functions-eventing-extension</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Azure/azure-functions-eventgrid-extension</RepositoryUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 

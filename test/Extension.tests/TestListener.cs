@@ -31,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             _log.Clear();
         }
 
-        // Unsubscribe gives a 202. 
+        // Unsubscribe gives a 202.
         [Fact]
         public async Task TestUnsubscribe()
         {
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<MyProg1>(ext);
 
 
-            await host.StartAsync(); // add listener 
+            await host.StartAsync(); // add listener
 
 
             var request = CreateUnsubscribeRequest("TestEventGrid");
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
 
-        // Test that an event payload with multiple events causes multiple dispatches, 
+        // Test that an event payload with multiple events causes multiple dispatches,
         /// and that each instance has correct binding data .
         // This is the fundamental difference between a regular HTTP trigger and a EventGrid trigger.
         [Fact]
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<MyProg1>(ext);
 
-            await host.StartAsync(); // add listener 
+            await host.StartAsync(); // add listener
 
             var request = CreateDispatchRequest("TestEventGrid", new EventGridEvent
             {
@@ -82,12 +82,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             var response = await handler.ConvertAsync(request, CancellationToken.None);
 
-            // Verify that the user function was dispatched twice, in order. 
+            // Verify that the user function was dispatched twice, in order.
             // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
             Assert.Equal("[Dispatch:One,alpha][Dispatch:Two,beta]", _log.ToString());
 
-            // TODO - Verify that we return from webhook before the dispatch is finished 
-            // https://github.com/Azure/azure-functions-eventing-extension/issues/10
+            // TODO - Verify that we return from webhook before the dispatch is finished
+            // https://github.com/Azure/azure-functions-eventgrid-extension/issues/10
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         }
 
