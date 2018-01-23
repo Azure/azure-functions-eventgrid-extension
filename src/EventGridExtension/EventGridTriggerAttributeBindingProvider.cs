@@ -1,6 +1,13 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using EventGridOfficial = Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -8,12 +15,6 @@ using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            if (!isSupportBindingType(parameter.ParameterType))
+            if (!IsSupportedBindingType(parameter.ParameterType))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
@@ -51,9 +52,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         }
 
-        public bool isSupportBindingType(Type t)
+        public bool IsSupportedBindingType(Type t)
         {
-            return (t == typeof(EventGridEvent) || t == typeof(string));
+            return (t == typeof(EventGridOfficial.EventGridEvent) || t == typeof(EventGridEvent) || t == typeof(string));
         }
 
         internal class EventGridTriggerBinding : ITriggerBinding
@@ -68,7 +69,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 _parameter = parameter;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
-                    {"data",typeof(JObject) }
+                    { "data", typeof(JObject) }
                 };
             }
 
@@ -79,29 +80,29 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Type TriggerValueType
             {
-                get { return typeof(EventGridEvent); }
+                get { return typeof(EventGridOfficial.EventGridEvent); }
             }
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 // convert value to EventGridEvent, extract {data} as JObject
-                EventGridEvent triggerValue = null;
+                EventGridOfficial.EventGridEvent triggerValue = null;
                 if (value is string stringValue)
                 {
                     try
                     {
-                        triggerValue = JsonConvert.DeserializeObject<EventGridEvent>(stringValue);
+                        triggerValue = JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(stringValue);
                     }
                     catch (Exception)
                     {
-                        throw new FormatException($"Unable to parse {stringValue} to {typeof(EventGridEvent)}");
+                        throw new FormatException($"Unable to parse {stringValue} to {typeof(EventGridOfficial.EventGridEvent)}");
                     }
 
                 }
                 else
                 {
                     // default casting
-                    triggerValue = value as EventGridEvent;
+                    triggerValue = value as EventGridOfficial.EventGridEvent;
                 }
 
                 if (triggerValue == null)
@@ -111,17 +112,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
-                    {"data", triggerValue.Data}
+                    { "data", triggerValue.Data }
                 };
 
+                // convert EventGridEvent to parameterType
+                // TODO use converters
                 object argument;
+                string argumentAsString = JsonConvert.SerializeObject(triggerValue, Formatting.Indented); ;
                 if (_parameter.ParameterType == typeof(string))
                 {
-                    argument = JsonConvert.SerializeObject(triggerValue, Formatting.Indented);
+                    argument = argumentAsString;
+                }
+                else if (_parameter.ParameterType == typeof(EventGridEvent))
+                {
+                    argument = JsonConvert.DeserializeObject<EventGridEvent>(argumentAsString);
                 }
                 else
                 {
-                    argument = triggerValue;
+                    argument = JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(argumentAsString);
                 }
 
                 IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);

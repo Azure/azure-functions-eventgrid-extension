@@ -16,6 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public string ValidationCode { get; set; }
     }
 
+    [Obsolete("Microsoft.Azure.WebJobs.Extensions.EventGrid.EventGridEvent is deprecated, please use Microsoft.Azure.EventGrid.Models.EventGridEvent instead")]
     public class EventGridEvent
     {
         /*

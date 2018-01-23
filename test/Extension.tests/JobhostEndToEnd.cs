@@ -1,9 +1,9 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using Xunit;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using EventGridOfficial = Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+using Newtonsoft.Json;
+using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public async Task ConsumeEventGridEventTest()
         {
 
-            EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
+            EventGridOfficial.EventGridEvent eve = JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         [Fact]
         public async Task UseInputBlobBinding()
         {
-            EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
+            EventGridOfficial.EventGridEvent eve = JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
@@ -48,21 +48,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class MyProg1
         {
-            public void TestEventGrid([EventGridTrigger] EventGridEvent value)
+            public void TestEventGrid([EventGridTrigger] EventGridOfficial.EventGridEvent value)
             {
                 functionOut = value.Subject;
             }
 
             public void TestEventGridToString([EventGridTrigger] string value)
             {
-                functionOut = JsonConvert.DeserializeObject<EventGridEvent>(value).Subject;
+                functionOut = JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(value).Subject;
             }
         }
 
         public class MyProg3
         {
             public void TestBlobStream(
-            [EventGridTrigger] EventGridEvent value,
+            [EventGridTrigger] EventGridOfficial.EventGridEvent value,
             [BindingData("{data.fileUrl}")] string autoResolve)
             {
                 functionOut = autoResolve;

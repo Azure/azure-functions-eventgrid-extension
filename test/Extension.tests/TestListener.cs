@@ -1,17 +1,14 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using Xunit;
-using System.IO;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Host.Config;
-using System.Net.Http;
-using System.Threading;
-using System.Net;
+﻿using System;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
+using EventGridOfficial = Microsoft.Azure.EventGrid.Models;
+using Microsoft.Azure.WebJobs.Host.Config;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
@@ -63,7 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             await host.StartAsync(); // add listener
 
-            var request = CreateDispatchRequest("TestEventGrid", new EventGridEvent
+            var request = CreateDispatchRequest("TestEventGrid", new EventGridOfficial.EventGridEvent
             {
                 Subject = "One",
                 Data = JObject.FromObject(new FakePayload
@@ -71,7 +68,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                     Prop = "alpha"
                 })
             },
-            new EventGridEvent
+            new EventGridOfficial.EventGridEvent
             {
                 Subject = "Two",
                 Data = JObject.FromObject(new FakePayload
@@ -98,7 +95,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             return request;
         }
 
-        static HttpRequestMessage CreateDispatchRequest(string funcName, params EventGridEvent[] items)
+        static HttpRequestMessage CreateDispatchRequest(string funcName, params EventGridOfficial.EventGridEvent[] items)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
             request.Headers.Add("aeg-event-type", "Notification");
@@ -118,7 +115,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         {
             [FunctionName("TestEventGrid")]
             public void Run(
-                [EventGridTrigger] EventGridEvent value,
+                [EventGridTrigger] EventGridOfficial.EventGridEvent value,
                 [BindingData("{data.prop}")] string prop)
             {
                 _log.Append("[Dispatch:" + value.Subject + "," + prop + "]");
