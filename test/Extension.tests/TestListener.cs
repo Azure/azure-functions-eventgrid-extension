@@ -116,7 +116,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class MyProg1
         {
-            public void TestEventGrid(
+            [FunctionName("TestEventGrid")]
+            public void Run(
                 [EventGridTrigger] EventGridEvent value,
                 [BindingData("{data.prop}")] string prop)
             {

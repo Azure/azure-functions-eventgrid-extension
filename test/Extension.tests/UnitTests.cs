@@ -22,7 +22,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             MethodBase methodbase = this.GetType().GetMethod("DummyMethod", BindingFlags.NonPublic | BindingFlags.Instance);
             ParameterInfo[] arrayParam = methodbase.GetParameters();
 
-            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, null);
+            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null);
             // given GventGridEvent
             EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
             JObject data = eve.Data;

@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
 
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, context.Parameter.Member.Name));
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider));
 
         }
 
@@ -60,13 +61,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
             private EventGridExtensionConfig _listenersStore;
-            private readonly string _functionName;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, string functionName)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
-                _functionName = functionName;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
                     {"data",typeof(JObject) }
@@ -131,7 +130,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, _functionName));
+                // for csharp function, shortName == functionNameAttribute.Name
+                // for csharpscript function, shortName == Functions.FolderName (need to strip the first half)
+                string functionName = context.Descriptor.ShortName.Split('.').Last();
+                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, functionName));
             }
 
             public ParameterDescriptor ToParameterDescriptor()

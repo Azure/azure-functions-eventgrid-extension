@@ -57,6 +57,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
             if (String.IsNullOrEmpty(functionName) || !_listeners.ContainsKey(functionName))
             {
+                _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
+                    $"cannot find function: '{functionName}', available function names: [{string.Join(", ", _listeners.Keys.ToArray())}]"));
                 return new HttpResponseMessage(HttpStatusCode.NotFound);
             }
 
