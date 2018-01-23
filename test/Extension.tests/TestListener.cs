@@ -1,17 +1,14 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using Xunit;
-using System.IO;
-using System;
-using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Host.Config;
-using System.Net.Http;
-using System.Threading;
-using System.Net;
+﻿using System;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
+using Microsoft.Azure.EventGrid.Models;
+using Microsoft.Azure.WebJobs.Host.Config;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
