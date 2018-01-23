@@ -1,6 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -8,11 +14,6 @@ using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
@@ -40,7 +41,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            if (!isSupportBindingType(parameter.ParameterType))
+            if (!IsSupportBindingType(parameter.ParameterType))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         }
 
-        public bool isSupportBindingType(Type t)
+        public bool IsSupportBindingType(Type t)
         {
             return (t == typeof(EventGridEvent) || t == typeof(string));
         }
@@ -69,7 +70,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 _functionName = functionName;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
-                    {"data",typeof(JObject) }
+                    { "data", typeof(JObject) }
                 };
             }
 
@@ -112,7 +113,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
-                    {"data", triggerValue.Data}
+                    { "data", triggerValue.Data }
                 };
 
                 object argument;

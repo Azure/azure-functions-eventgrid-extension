@@ -1,10 +1,11 @@
-﻿using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+﻿using System;
+using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid.Models;
+using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Reflection;
-using System.Threading.Tasks;
 using Xunit;
 using static Microsoft.Azure.WebJobs.Extensions.EventGrid.EventGridTriggerAttributeBindingProvider;
 
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, null);
             // given GventGridEvent
             EventGridEvent eve = JsonConvert.DeserializeObject<EventGridEvent>(FakeData.singleEvent);
-            JObject data = eve.Data;
+            JObject data = (JObject)eve.Data;
 
             ITriggerData triggerDataWithEvent = await binding.BindAsync(eve, null);
             Assert.Equal(data, triggerDataWithEvent.BindingData["data"]);
