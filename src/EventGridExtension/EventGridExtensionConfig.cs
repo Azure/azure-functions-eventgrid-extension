@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using EventGridOfficial = Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Executors;
@@ -33,9 +32,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             _tracer = context.Trace;
 
             Uri url = context.GetWebhookHandler();
-
-            // surface "Microsoft.Azure.EventGrid.Models" assembly to function runtime, this converter will not be called
-            context.AddConverter<string, EventGridOfficial.EventGridEvent>((stringValue) => JsonConvert.DeserializeObject<EventGridOfficial.EventGridEvent>(stringValue));
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));
@@ -78,8 +74,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
                 SubscriptionValidationEvent validationEvent = null;
-                List<EventGridOfficial.EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridOfficial.EventGridEvent>>(jsonArray);
-                validationEvent = ((JObject)events[0].Data).ToObject<SubscriptionValidationEvent>();
+                List<JObject> events = JsonConvert.DeserializeObject<List<JObject>>(jsonArray);
+                // TODO remove unnecessary serialization
+                validationEvent = ((JObject)events[0]["data"]).ToObject<SubscriptionValidationEvent>();
                 SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
@@ -90,7 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
-                List<EventGridOfficial.EventGridEvent> events = JsonConvert.DeserializeObject<List<EventGridOfficial.EventGridEvent>>(jsonArray);
+                List<JObject> events = JsonConvert.DeserializeObject<List<JObject>>(jsonArray);
 
                 foreach (var ev in events)
                 {
