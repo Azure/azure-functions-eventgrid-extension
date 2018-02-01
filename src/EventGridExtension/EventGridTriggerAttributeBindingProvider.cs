@@ -68,7 +68,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 _parameter = parameter;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "data", typeof(JObject) }
+                    { "data", typeof(object) }
                 };
             }
 
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "data", (JObject)triggerValue["data"] }
+                    { "data", triggerValue["data"] }
                 };
 
                 // convert to parameterType

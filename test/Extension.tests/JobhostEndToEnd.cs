@@ -37,18 +37,46 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Fact]
-        public async Task UseInputBlobBinding()
+        public async Task ValidJsonBindingDataTests()
         {
+            var host = TestHelpers.NewHost<MyProg3>();
+
             JObject eve = JObject.Parse(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
 
-            var host = TestHelpers.NewHost<MyProg3>();
-
-            await host.CallAsync("MyProg3.TestBlobStream", args);
+            await host.CallAsync("MyProg3.TestJObject", args);
             Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", functionOut);
             functionOut = null;
+
+            eve = JObject.Parse(FakeData.stringDataEvent);
+            args = new Dictionary<string, object>{
+                { "value", eve }
+            };
+
+            await host.CallAsync("MyProg3.TestString", args);
+            Assert.Equal("goodBye world", functionOut);
+            functionOut = null;
+
+            eve = JObject.Parse(FakeData.arrayDataEvent);
+            args = new Dictionary<string, object>{
+                { "value", eve }
+            };
+
+            await host.CallAsync("MyProg3.TestArray", args);
+            Assert.Equal("ConfusedDev", functionOut);
+            functionOut = null;
+
+            eve = JObject.Parse(FakeData.primitiveDataEvent);
+            args = new Dictionary<string, object>{
+                { "value", eve }
+            };
+
+            await host.CallAsync("MyProg3.TestPrimitive", args);
+            Assert.Equal("123", functionOut);
+            functionOut = null;
+
         }
 
         public class MyProg1
@@ -72,11 +100,33 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class MyProg3
         {
-            public void TestBlobStream(
-            [EventGridTrigger] JObject value,
-            [BindingData("{data.fileUrl}")] string autoResolve)
+            public void TestJObject(
+                [EventGridTrigger] JObject value,
+                [BindingData("{data.fileUrl}")] string autoResolve)
             {
                 functionOut = autoResolve;
+            }
+
+            public void TestString(
+                [EventGridTrigger] JObject value,
+                [BindingData("{data}")] string autoResolve)
+            {
+                functionOut = autoResolve;
+            }
+
+            // auto resolve only works for string
+            public void TestArray(
+                [EventGridTrigger] JObject value)
+            {
+                JArray data = (JArray)value["data"];
+                functionOut = (string)value["data"][0];
+            }
+
+            public void TestPrimitive(
+                [EventGridTrigger] JObject value)
+            {
+                int data = (int)value["data"];
+                functionOut = data.ToString();
             }
         }
     }

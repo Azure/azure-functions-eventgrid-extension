@@ -32,6 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             _tracer = context.Trace;
 
             Uri url = context.GetWebhookHandler();
+            _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info, $"registered EventGrid Endpoint = {url}"));
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));
