@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.WebJobs.Host.Indexers;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
@@ -8,10 +11,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class JobhostEndToEnd
     {
-        static private string functionOut = null;
+        private static string _functionOut = null;
 
         [Fact]
-        public async Task ConsumeEventGridEventTest()
+        public async Task ValidParameterTypeTests()
         {
 
             JObject eve = JObject.Parse(FakeData.singleEvent);
@@ -23,21 +26,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<MyProg1>();
 
-            await host.CallAsync("MyProg1.TestEventGrid", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("MyProg1.TestEventGridToObsolete", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
 
             await host.CallAsync("MyProg1.TestEventGridToString", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
 
             await host.CallAsync("MyProg1.TestEventGridToJObject", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
+
+            await host.CallAsync("MyProg1.TestEventGridToNuget", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
+
+            // when invoked
+            var invocationException = await Assert.ThrowsAsync<FunctionInvocationException>(() => host.CallAsync("MyProg1.TestEventGridToCustom", args));
+            Assert.Equal($"Can't bind EventGridTriggerAttribute to type '{typeof(Poco)}'.", invocationException.InnerException.InnerException.Message);
+
+            // when indexed
+            host = TestHelpers.NewHost<MyProg2>();
+            var indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"Can't bind EventGridTriggerAttribute to type '{typeof(int)}'.", indexException.InnerException.Message);
         }
 
         [Fact]
-        public async Task ValidJsonBindingDataTests()
+        public async Task ValidTriggerDataTests()
         {
             var host = TestHelpers.NewHost<MyProg3>();
 
@@ -47,8 +63,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             };
 
             await host.CallAsync("MyProg3.TestJObject", args);
-            Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", functionOut);
-            functionOut = null;
+            Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", _functionOut);
+            _functionOut = null;
 
             eve = JObject.Parse(FakeData.stringDataEvent);
             args = new Dictionary<string, object>{
@@ -56,8 +72,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             };
 
             await host.CallAsync("MyProg3.TestString", args);
-            Assert.Equal("goodBye world", functionOut);
-            functionOut = null;
+            Assert.Equal("goodBye world", _functionOut);
+            _functionOut = null;
 
             eve = JObject.Parse(FakeData.arrayDataEvent);
             args = new Dictionary<string, object>{
@@ -65,8 +81,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             };
 
             await host.CallAsync("MyProg3.TestArray", args);
-            Assert.Equal("ConfusedDev", functionOut);
-            functionOut = null;
+            Assert.Equal("ConfusedDev", _functionOut);
+            _functionOut = null;
 
             eve = JObject.Parse(FakeData.primitiveDataEvent);
             args = new Dictionary<string, object>{
@@ -74,28 +90,53 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             };
 
             await host.CallAsync("MyProg3.TestPrimitive", args);
-            Assert.Equal("123", functionOut);
-            functionOut = null;
+            Assert.Equal("123", _functionOut);
+            _functionOut = null;
 
         }
 
         public class MyProg1
         {
             // different argument types
-            public void TestEventGrid([EventGridTrigger] EventGridEvent value)
+            public void TestEventGridToObsolete([EventGridTrigger] EventGridEvent value)
             {
-                functionOut = value.Subject;
+                _functionOut = value.Subject;
             }
 
             public void TestEventGridToString([EventGridTrigger] string value)
             {
-                functionOut = (string)JObject.Parse(value)["subject"];
+                _functionOut = (string)JObject.Parse(value)["subject"];
             }
 
             public void TestEventGridToJObject([EventGridTrigger] JObject value)
             {
-                functionOut = (string)value["subject"];
+                _functionOut = (string)value["subject"];
             }
+
+            public void TestEventGridToNuget([EventGridTrigger] Azure.EventGrid.Models.EventGridEvent value)
+            {
+                _functionOut = value.Subject;
+            }
+
+            public void TestEventGridToCustom([EventGridTrigger] Poco value)
+            {
+                _functionOut = value.Name;
+            }
+        }
+
+        public class MyProg2
+        {
+            public void TestEventGridToValueType([EventGridTrigger] int value)
+            {
+                _functionOut = "failure";
+            }
+        }
+
+        public class Poco
+        {
+            public string Name { get; set; }
+            // in the json payload, Subject is a String, this should cause JObject conversion to fail
+            public int Subject { get; set; }
         }
 
         public class MyProg3
@@ -104,14 +145,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [EventGridTrigger] JObject value,
                 [BindingData("{data.fileUrl}")] string autoResolve)
             {
-                functionOut = autoResolve;
+                _functionOut = autoResolve;
             }
 
             public void TestString(
                 [EventGridTrigger] JObject value,
                 [BindingData("{data}")] string autoResolve)
             {
-                functionOut = autoResolve;
+                _functionOut = autoResolve;
             }
 
             // auto resolve only works for string
@@ -119,14 +160,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [EventGridTrigger] JObject value)
             {
                 JArray data = (JArray)value["data"];
-                functionOut = (string)value["data"][0];
+                _functionOut = (string)value["data"][0];
             }
 
             public void TestPrimitive(
                 [EventGridTrigger] JObject value)
             {
                 int data = (int)value["data"];
-                functionOut = data.ToString();
+                _functionOut = data.ToString();
             }
         }
     }

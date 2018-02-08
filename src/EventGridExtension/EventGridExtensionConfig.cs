@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Newtonsoft.Json;
@@ -14,10 +15,21 @@ using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
+
+    public class ReferenceOpenType : OpenType
+    {
+        public override bool IsMatch(Type type)
+        {
+            // not interface, not valueType
+            return type.IsClass;
+        }
+    }
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         private TraceWriter _tracer = null;
+
+        internal IConverterManager ConverterManager { get; private set; }
 
         public void Initialize(ExtensionConfigContext context)
         {
@@ -33,6 +45,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             Uri url = context.GetWebhookHandler();
             _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info, $"registered EventGrid Endpoint = {url}"));
+
+            // use converterManager as a hashTable
+            // also take benefit of identity converter
+            ConverterManager = context.Config.GetService<IConverterManager>();
+            ConverterManager.AddConverter<JObject, string, EventGridTriggerAttribute>((jobject, attr) => jobject.ToString(Formatting.Indented));
+            ConverterManager.AddConverter<JObject, ReferenceOpenType, EventGridTriggerAttribute>((tSrc, tDest) => (input => ((JObject)input).ToObject(tDest)));
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));

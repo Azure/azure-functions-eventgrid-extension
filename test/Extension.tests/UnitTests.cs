@@ -20,8 +20,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         {
             MethodBase methodbase = this.GetType().GetMethod("DummyMethod", BindingFlags.NonPublic | BindingFlags.Instance);
             ParameterInfo[] arrayParam = methodbase.GetParameters();
+            Func<JObject, object, object, JObject> identityConverter = (src, attribute, context) => src;
 
-            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null);
+            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, identityConverter);
             JObject eve = JObject.Parse(FakeData.singleEvent);
             JObject data = (JObject)eve["data"];
 
@@ -29,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             ITriggerData triggerDataWithEvent = await binding.BindAsync(eve, null);
             Assert.Equal(data, triggerDataWithEvent.BindingData["data"]);
 
-            // string as input
+            // string as input (Test API from portal)
             ITriggerData triggerDataWithString = await binding.BindAsync(FakeData.singleEvent, null);
             Assert.Equal(data, triggerDataWithString.BindingData["data"]);
 

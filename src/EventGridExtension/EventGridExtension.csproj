@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="2.1.0-beta4" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="2.1.0-beta4" />
     <Reference Include="System.Web" />
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <ItemGroup Condition="$(TargetFramework)=='netstandard2.0'">

@@ -19,7 +19,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     internal class EventGridTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
-        private EventGridExtensionConfig _extensionConfigProvider;
+        private readonly EventGridExtensionConfig _extensionConfigProvider;
         internal EventGridTriggerAttributeBindingProvider(EventGridExtensionConfig extensionConfigProvider)
         {
             _extensionConfigProvider = extensionConfigProvider;
@@ -41,31 +41,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            if (!IsSupportedBindingType(parameter.ParameterType))
+
+            var method = typeof(IConverterManager).GetMethod("GetConverter");
+            // we convert data returned from listener or from test API to JObject first
+            var generic = method.MakeGenericMethod(typeof(JObject), parameter.ParameterType, typeof(EventGridTriggerAttribute));
+            object converter = generic.Invoke(_extensionConfigProvider.ConverterManager, null);
+            if (converter == null)
             {
+                // since we use openType, we defere JObject deserialization error to runtime
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
 
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider));
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, converter));
 
-        }
-
-        public bool IsSupportedBindingType(Type t)
-        {
-            return (t == typeof(EventGridEvent) || t == typeof(string) || t == typeof(JObject));
         }
 
         internal class EventGridTriggerBinding : ITriggerBinding
         {
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
-            private EventGridExtensionConfig _listenersStore;
+            private readonly EventGridExtensionConfig _listenersStore;
+            private readonly dynamic _converter;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, dynamic converter)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
+                _converter = converter;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "data", typeof(object) }
@@ -114,23 +117,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 };
 
                 // convert to parameterType
-                // TODO use converters
-                object argument;
-                if (_parameter.ParameterType == typeof(string))
+                // 1. JObject to JObject
+                // 2. JObject to POCO, EventGridEvent(obsolete)/EventGridEvent(nuget)
+                // 3. JObject to String
+                try
                 {
-                    argument = triggerValue.ToString(Formatting.Indented);
+                    // public delegate TDestination FuncConverter<TSource, TAttribute, TDestination>(TSource src, TAttribute attribute, ValueBindingContext context)
+                    object argument = _converter(triggerValue, null, null);
+                    IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
+                    return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
                 }
-                else if (_parameter.ParameterType == typeof(EventGridEvent))
+                catch (Exception ex)
                 {
-                    argument = triggerValue.ToObject<EventGridEvent>();
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
+                        "Can't bind EventGridTriggerAttribute to type '{0}'.", _parameter.ParameterType), ex);
                 }
-                else
-                {
-                    argument = triggerValue;
-                }
-
-                IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
-                return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
