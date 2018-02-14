@@ -165,29 +165,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 }
             }
 
-            // dispose IO resources
-            private class EventGridValueBinder : ValueBinder, IDisposable
+            private class EventGridValueBinder : ValueBinder
             {
                 private readonly object _value;
-                private List<IDisposable> _disposables = null;
 
-                public EventGridValueBinder(ParameterInfo parameter, object value, List<IDisposable> disposables = null)
+                public EventGridValueBinder(ParameterInfo parameter, object value)
                     : base(parameter.ParameterType)
                 {
                     _value = value;
-                    _disposables = disposables;
-                }
-
-                public void Dispose()
-                {
-                    if (_disposables != null)
-                    {
-                        foreach (var d in _disposables)
-                        {
-                            d.Dispose();
-                        }
-                        _disposables = null;
-                    }
                 }
 
                 public override Task<object> GetValueAsync()
