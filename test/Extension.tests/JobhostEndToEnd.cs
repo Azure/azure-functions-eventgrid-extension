@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Indexers;
@@ -25,10 +26,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var expectOut = (string)eve["subject"];
 
             var host = TestHelpers.NewHost<MyProg1>();
-
-            await host.CallAsync("MyProg1.TestEventGridToObsolete", args);
-            Assert.Equal(_functionOut, expectOut);
-            _functionOut = null;
 
             await host.CallAsync("MyProg1.TestEventGridToString", args);
             Assert.Equal(_functionOut, expectOut);
@@ -98,10 +95,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public class MyProg1
         {
             // different argument types
-            public void TestEventGridToObsolete([EventGridTrigger] EventGridEvent value)
-            {
-                _functionOut = value.Subject;
-            }
 
             public void TestEventGridToString([EventGridTrigger] string value)
             {
@@ -113,7 +106,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 _functionOut = (string)value["subject"];
             }
 
-            public void TestEventGridToNuget([EventGridTrigger] Azure.EventGrid.Models.EventGridEvent value)
+            public void TestEventGridToNuget([EventGridTrigger] EventGridEvent value)
             {
                 _functionOut = value.Subject;
             }

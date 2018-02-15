@@ -20,7 +20,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         {
             MethodBase methodbase = this.GetType().GetMethod("DummyMethod", BindingFlags.NonPublic | BindingFlags.Instance);
             ParameterInfo[] arrayParam = methodbase.GetParameters();
-            Func<JObject, object, object, JObject> identityConverter = (src, attribute, context) => src;
+            FuncAsyncConverter identityConverter = (src, attribute, context) => Task.FromResult(src);
 
             ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, identityConverter);
             JObject eve = JObject.Parse(FakeData.singleEvent);

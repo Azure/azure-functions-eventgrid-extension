@@ -6,28 +6,20 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Executors;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-
-    public class ReferenceOpenType : OpenType
-    {
-        public override bool IsMatch(Type type)
-        {
-            // not interface, not valueType
-            return type.IsClass;
-        }
-    }
     public class EventGridExtensionConfig : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        private TraceWriter _tracer = null;
+        private ILogger _logger;
 
         internal IConverterManager ConverterManager { get; private set; }
 
@@ -37,20 +29,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 throw new ArgumentNullException("context");
             }
-            else if (context.Trace == null)
-            {
-                throw new ArgumentNullException("context.Trace");
-            }
-            _tracer = context.Trace;
+
+            _logger = context.Config.LoggerFactory.CreateLogger<EventGridExtensionConfig>();
 
             Uri url = context.GetWebhookHandler();
-            _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info, $"registered EventGrid Endpoint = {url}"));
+            _logger.LogInformation($"registered EventGrid Endpoint = {url}");
 
             // use converterManager as a hashTable
             // also take benefit of identity converter
             ConverterManager = context.Config.GetService<IConverterManager>();
-            ConverterManager.AddConverter<JObject, string, EventGridTriggerAttribute>((jobject, attr) => jobject.ToString(Formatting.Indented));
-            ConverterManager.AddConverter<JObject, ReferenceOpenType, EventGridTriggerAttribute>((tSrc, tDest) => (input => ((JObject)input).ToObject(tDest)));
+            context
+                .AddConverter<JObject, string>((jobject) => jobject.ToString(Formatting.Indented))
+                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to csx
+                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>));
+            //ConverterManager.AddConverter<JObject, OpenType.Poco, EventGridTriggerAttribute>((tSrc, tDest) => (input => ((JObject)input).ToObject(tDest)));
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));
@@ -77,8 +69,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             var functionName = HttpUtility.ParseQueryString(req.RequestUri.Query)["functionName"];
             if (String.IsNullOrEmpty(functionName) || !_listeners.ContainsKey(functionName))
             {
-                _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
-                    $"cannot find function: '{functionName}', available function names: [{string.Join(", ", _listeners.Keys.ToArray())}]"));
+                _logger.LogInformation($"cannot find function: '{functionName}', available function names: [{string.Join(", ", _listeners.Keys.ToArray())}]");
                 return new HttpResponseMessage(HttpStatusCode.NotFound);
             }
 
@@ -99,8 +90,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
-                _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
-                    $"perform handshake with eventGrid for endpoint: {req.RequestUri}"));
+                _logger.LogInformation($"perform handshake with eventGrid for endpoint: {req.RequestUri}");
                 return returnMessage;
             }
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
@@ -128,6 +118,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             return new HttpResponseMessage(HttpStatusCode.BadRequest);
 
+        }
+
+        private class JObjectToPocoConverter<T> : IConverter<JObject, T>
+        {
+            public T Convert(JObject input)
+            {
+                return input.ToObject<T>();
+            }
         }
     }
 }

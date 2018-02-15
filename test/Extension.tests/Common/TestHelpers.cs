@@ -1,8 +1,5 @@
-﻿using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.EventGrid;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
@@ -17,6 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             config.TypeLocator = new FakeTypeLocator<T>();
             config.AddExtension(ext ?? new EventGridExtensionConfig());
             config.AddExtension(new TestExtensionConfig());
+            config.LoggerFactory = new LoggerFactory();
             var host = new JobHost(config);
             return host;
         }

@@ -41,11 +41,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-
-            var method = typeof(IConverterManager).GetMethod("GetConverter");
-            // we convert data returned from listener or from test API to JObject first
-            var generic = method.MakeGenericMethod(typeof(JObject), parameter.ParameterType, typeof(EventGridTriggerAttribute));
-            object converter = generic.Invoke(_extensionConfigProvider.ConverterManager, null);
+            var converter = _extensionConfigProvider.ConverterManager.GetConverter<EventGridTriggerAttribute>(typeof(JObject),
+                parameter.ParameterType);
             if (converter == null)
             {
                 // since we use openType, we defere JObject deserialization error to runtime
@@ -62,9 +59,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
             private readonly EventGridExtensionConfig _listenersStore;
-            private readonly dynamic _converter;
+            private readonly FuncAsyncConverter _converter;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, dynamic converter)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, FuncAsyncConverter converter)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
@@ -85,7 +82,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 get { return typeof(JObject); }
             }
 
-            public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
+            public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 JObject triggerValue = null;
                 if (value is string stringValue)
@@ -118,14 +115,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
                 // convert to parameterType
                 // 1. JObject to JObject
-                // 2. JObject to POCO, EventGridEvent(obsolete)/EventGridEvent(nuget)
+                // 2. JObject to POCO, EventGridEvent(nuget)
                 // 3. JObject to String
                 try
                 {
-                    // public delegate TDestination FuncConverter<TSource, TAttribute, TDestination>(TSource src, TAttribute attribute, ValueBindingContext context)
-                    object argument = _converter(triggerValue, null, null);
+                    // async converter
+                    object argument = await _converter(triggerValue, null, null);
                     IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
-                    return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, bindingData));
+                    return new TriggerData(valueBinder, bindingData);
                 }
                 catch (Exception ex)
                 {
