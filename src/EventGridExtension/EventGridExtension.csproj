@@ -19,8 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework)=='net46'">
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="2.1.0-beta4" />
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="2.1.0-beta4" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="2.1.0" />
     <Reference Include="System.Web" />
   </ItemGroup>
 
