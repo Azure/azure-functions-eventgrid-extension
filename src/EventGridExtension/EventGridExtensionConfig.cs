@@ -39,10 +39,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             // also take benefit of identity converter
             ConverterManager = context.Config.GetService<IConverterManager>();
             context
+                .AddBindingRule<EventGridTriggerAttribute>() // following converters are for EventGridTriggerAttribute only
                 .AddConverter<JObject, string>((jobject) => jobject.ToString(Formatting.Indented))
-                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to csx
+                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
                 .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>));
-            //ConverterManager.AddConverter<JObject, OpenType.Poco, EventGridTriggerAttribute>((tSrc, tDest) => (input => ((JObject)input).ToObject(tDest)));
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));

@@ -45,7 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 parameter.ParameterType);
             if (converter == null)
             {
-                // since we use openType, we defere JObject deserialization error to runtime
+                // since we use openType, we defer JObject deserialization error to runtime
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
