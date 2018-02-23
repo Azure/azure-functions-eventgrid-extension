@@ -41,12 +41,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             // when invoked
             var invocationException = await Assert.ThrowsAsync<FunctionInvocationException>(() => host.CallAsync("MyProg1.TestEventGridToCustom", args));
-            Assert.Equal($"Can't bind EventGridTriggerAttribute to type '{typeof(Poco)}'.", invocationException.InnerException.InnerException.Message);
+            Assert.Equal(@"Exception binding parameter 'value'", invocationException.InnerException.Message);
 
             // when indexed
             host = TestHelpers.NewHost<MyProg2>();
             var indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
-            Assert.Equal($"Can't bind EventGridTriggerAttribute to type '{typeof(int)}'.", indexException.InnerException.Message);
+            Assert.Equal($"Can't bind EventGridTrigger to type '{typeof(int)}'.", indexException.InnerException.Message);
         }
 
         [Fact]
@@ -54,8 +54,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         {
             var host = TestHelpers.NewHost<MyProg3>();
 
-            JObject eve = JObject.Parse(FakeData.singleEvent);
+            // string is also valid when using direct invocation
+            String eveAsString = FakeData.singleEvent;
             var args = new Dictionary<string, object>{
+                { "value", eveAsString }
+            };
+            await host.CallAsync("MyProg3.TestJObject", args);
+            Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", _functionOut);
+            _functionOut = null;
+
+            JObject eve = JObject.Parse(FakeData.singleEvent);
+            args = new Dictionary<string, object>{
                 { "value", eve }
             };
 

@@ -3,16 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
@@ -41,17 +38,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            var converter = _extensionConfigProvider.ConverterManager.GetConverter<EventGridTriggerAttribute>(typeof(JObject),
-                parameter.ParameterType);
-            if (converter == null)
-            {
-                // since we use openType, we defer JObject deserialization error to runtime
-                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                    "Can't bind EventGridTriggerAttribute to type '{0}'.", parameter.ParameterType));
-            }
-
-            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider, converter));
-
+            return Task.FromResult<ITriggerBinding>(new EventGridTriggerBinding(context.Parameter, _extensionConfigProvider));
         }
 
         internal class EventGridTriggerBinding : ITriggerBinding
@@ -59,13 +46,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
             private readonly EventGridExtensionConfig _listenersStore;
-            private readonly FuncAsyncConverter _converter;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore, FuncAsyncConverter converter)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;
-                _converter = converter;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "data", typeof(object) }
@@ -82,7 +67,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 get { return typeof(JObject); }
             }
 
-            public async Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
+            // Extract binding data
+            // Conversion from value to parameterType is done by GenericCompositeBindingProvider
+            public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
                 JObject triggerValue = null;
                 if (value is string stringValue)
@@ -113,22 +100,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                     { "data", triggerValue["data"] }
                 };
 
-                // convert to parameterType
-                // 1. JObject to JObject
-                // 2. JObject to POCO, EventGridEvent(nuget)
-                // 3. JObject to String
-                try
-                {
-                    // async converter
-                    object argument = await _converter(triggerValue, null, null);
-                    IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
-                    return new TriggerData(valueBinder, bindingData);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
-                        "Can't bind EventGridTriggerAttribute to type '{0}'.", _parameter.ParameterType), ex);
-                }
+                return Task.FromResult<ITriggerData>(new TriggerData(null, bindingData));
             }
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
@@ -162,29 +134,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                     return string.Format("EventGrid trigger fired at {0}", DateTime.Now.ToString("o"));
                 }
             }
-
-            private class EventGridValueBinder : ValueBinder
-            {
-                private readonly object _value;
-
-                public EventGridValueBinder(ParameterInfo parameter, object value)
-                    : base(parameter.ParameterType)
-                {
-                    _value = value;
-                }
-
-                public override Task<object> GetValueAsync()
-                {
-                    return Task.FromResult<object>(_value);
-                }
-
-                public override string ToInvokeString()
-                {
-                    // TODO: Customize your Dashboard invoke string
-                    return _value.ToString();
-                }
-            }
-
         }
     }
 }

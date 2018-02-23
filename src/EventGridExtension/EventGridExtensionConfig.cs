@@ -21,8 +21,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         private ILogger _logger;
 
-        internal IConverterManager ConverterManager { get; private set; }
-
         public void Initialize(ExtensionConfigContext context)
         {
             if (context == null)
@@ -37,15 +35,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             // use converterManager as a hashTable
             // also take benefit of identity converter
-            ConverterManager = context.Config.GetService<IConverterManager>();
             context
                 .AddBindingRule<EventGridTriggerAttribute>() // following converters are for EventGridTriggerAttribute only
                 .AddConverter<JObject, string>((jobject) => jobject.ToString(Formatting.Indented))
+                .AddConverter<string, JObject>((str) => JObject.Parse(str)) // used for direct invocation
                 .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
-                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>));
+                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
+                .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
 
-            // Register our extension binding providers
-            context.Config.RegisterBindingExtension(new EventGridTriggerAttributeBindingProvider(this));
         }
 
         private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();
