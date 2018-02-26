@@ -31,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             _logger = context.Config.LoggerFactory.CreateLogger<EventGridExtensionConfig>();
 
             Uri url = context.GetWebhookHandler();
-            _logger.LogInformation($"registered EventGrid Endpoint = {url}");
+            _logger.LogInformation($"registered EventGrid Endpoint = {url?.GetLeftPart(UriPartial.Path)}");
 
             // use converterManager as a hashTable
             // also take benefit of identity converter
