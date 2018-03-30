@@ -1,4 +1,4 @@
-version: 1.0.{build}
+version: '{build}'
 pull_requests:
   do_not_increment_build_number: true
 branches:
@@ -34,8 +34,15 @@ build_script:
     dotnet --version
 
     dotnet build -v q
-
-    dotnet pack src\EventGridExtension\EventGridExtension.csproj -o ..\..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
+    
+    $cmd = "pack", "src\EventGridExtension\EventGridExtension.csproj", "-o", "..\..\buildoutput", "--no-build"
+    
+    if (!$env:APPVEYOR_REPO_TAG) {
+        Write-Host "No git tag found. Setting package suffix to '$env:APPVEYOR_BUILD_NUMBER'"
+        $cmd += "--version-suffix", "-$env:APPVEYOR_BUILD_NUMBER"
+    }
+    
+    dotnet $cmd
 test_script:
 - ps: >-
     dotnet test .\test\Extension.tests\ -v q --no-build
