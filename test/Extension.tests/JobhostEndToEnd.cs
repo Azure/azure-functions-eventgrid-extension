@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Newtonsoft.Json.Linq;
@@ -34,6 +36,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             await host.CallAsync("MyProg1.TestEventGridToJObject", args);
             Assert.Equal(functionOut, expectOut);
             functionOut = null;
+
+            Assembly ass = Assembly.LoadFrom(@"..\..\..\..\Extension.testHelper\bin\Debug\net46\Microsoft.Azure.WebJobs.Extensions.EventGrid.TestHelper.dll");
+            Type type = ass.GetType("Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.MyProgram");
+            var genericMethod = typeof(TestHelpers).GetMethod("NewHost");
+            var method = genericMethod.MakeGenericMethod(type);
+            host = (JobHost)method.Invoke(null, new object[] { null });
+            await host.CallAsync("MyProgram.TestEventGridToJObject", args);
+            var output = type.GetField("functionOut").GetValue(null);
+            Assert.Equal(output, expectOut);
+
         }
 
         [Fact]

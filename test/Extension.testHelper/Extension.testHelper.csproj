@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net46</TargetFramework>
+    <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EventGrid.TestHelper</AssemblyName>
+    <RootNamespace>Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EventGridExtension\EventGridExtension.csproj" />
+  </ItemGroup>
+</Project>
