@@ -89,6 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 string jsonArray = await req.Content.ReadAsStringAsync();
                 List<JObject> events = JsonConvert.DeserializeObject<List<JObject>>(jsonArray);
+                List<Task<FunctionResult>> executions = new List<Task<FunctionResult>>();
 
                 foreach (var ev in events)
                 {
@@ -96,8 +97,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                     {
                         TriggerValue = ev
                     };
+                    executions.Add(_listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None));
+                }
+                await Task.WhenAll(executions);
 
-                    await _listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None);
+                // FIXME without internal queuing, we are going to process all events in parallel
+                // and return 500 if there's at least one failure...which will cause EventGrid to resend the entire payload
+                foreach (var execution in executions)
+                {
+                    if (!execution.Result.Succeeded)
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+                    }
                 }
 
                 return new HttpResponseMessage(HttpStatusCode.Accepted);
