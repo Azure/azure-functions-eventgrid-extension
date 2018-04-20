@@ -45,7 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
 
         // Test that an event payload with multiple events causes multiple dispatches,
-        /// and that each instance has correct binding data .
+        // and that each instance has correct binding data.
         // This is the fundamental difference between a regular HTTP trigger and a EventGrid trigger.
         [Fact]
         public async Task TestDispatch()
@@ -70,6 +70,33 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             // TODO - Verify that we return from webhook before the dispatch is finished
             // https://github.com/Azure/azure-functions-eventgrid-extension/issues/10
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task TestFailures()
+        {
+            var ext = new EventGridExtensionConfig();
+
+            var host = TestHelpers.NewHost<MyProg2>(ext);
+
+            await host.StartAsync(); // add listener
+
+            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
+            JObject dummyPayload = JObject.Parse("{}");
+
+            // test with function that throws exception
+            var request = CreateDispatchRequest("EventGridThrowsException", dummyPayload);
+
+            var response = await handler.ConvertAsync(request, CancellationToken.None);
+
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+
+            // test with invalid function name
+            request = CreateDispatchRequest("RandomFunctionName", dummyPayload);
+
+            response = await handler.ConvertAsync(request, CancellationToken.None);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         static HttpRequestMessage CreateUnsubscribeRequest(string funcName)
@@ -108,6 +135,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [BindingData("{data.prop}")] string prop)
             {
                 _log.Append($"[Dispatch:{(string)value["subject"]}, {prop}]");
+            }
+        }
+
+        public class MyProg2
+        {
+            [FunctionName("EventGridThrowsException")]
+            public void Run([EventGridTrigger] JObject value)
+            {
+                throw new InvalidOperationException($"failed with {value.ToString()}");
             }
         }
     }
