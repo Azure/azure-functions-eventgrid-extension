@@ -61,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
                     $"cannot find function: '{functionName}', available function names: [{string.Join(", ", _listeners.Keys.ToArray())}]"));
-                return new HttpResponseMessage(HttpStatusCode.NotFound);
+                return new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent($"cannot find function: '{functionName}'") };
             }
 
             IEnumerable<string> eventTypeHeaders = null;
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 {
                     if (!execution.Result.Succeeded)
                     {
-                        return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+                        return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(execution.Result.Exception.Message) };
                     }
                 }
 

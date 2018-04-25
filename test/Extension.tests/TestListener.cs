@@ -31,9 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public async Task TestUnsubscribe()
         {
             var ext = new EventGridExtensionConfig();
-
             var host = TestHelpers.NewHost<MyProg1>(ext);
-
             await host.StartAsync(); // add listener
 
             var request = CreateUnsubscribeRequest("TestEventGrid");
@@ -51,52 +49,55 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public async Task TestDispatch()
         {
             var ext = new EventGridExtensionConfig();
-
             var host = TestHelpers.NewHost<MyProg1>(ext);
-
             await host.StartAsync(); // add listener
 
             var request = CreateDispatchRequest("TestEventGrid",
                 JObject.Parse(@"{'subject':'one','data':{'prop':'alpha'}}"),
                 JObject.Parse(@"{'subject':'two','data':{'prop':'beta'}}"));
-
             IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             var response = await handler.ConvertAsync(request, CancellationToken.None);
 
             // Verify that the user function was dispatched twice, in order.
             // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
             Assert.Equal("[Dispatch:one, alpha][Dispatch:two, beta]", _log.ToString());
-
             // TODO - Verify that we return from webhook before the dispatch is finished
             // https://github.com/Azure/azure-functions-eventgrid-extension/issues/10
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         }
 
         [Fact]
-        public async Task TestFailures()
+        public async Task WrongFunctionNameTest()
         {
             var ext = new EventGridExtensionConfig();
-
             var host = TestHelpers.NewHost<MyProg2>(ext);
-
             await host.StartAsync(); // add listener
 
             IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             JObject dummyPayload = JObject.Parse("{}");
-
-            // test with function that throws exception
-            var request = CreateDispatchRequest("EventGridThrowsException", dummyPayload);
-
+            var request = CreateDispatchRequest("RandomFunctionName", dummyPayload);
             var response = await handler.ConvertAsync(request, CancellationToken.None);
 
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-
-            // test with invalid function name
-            request = CreateDispatchRequest("RandomFunctionName", dummyPayload);
-
-            response = await handler.ConvertAsync(request, CancellationToken.None);
-
+            string responseContent = await response.Content.ReadAsStringAsync();
+            Assert.Equal("cannot find function: 'RandomFunctionName'", responseContent);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task ExecutionFailureTest()
+        {
+            var ext = new EventGridExtensionConfig();
+            var host = TestHelpers.NewHost<MyProg2>(ext);
+            await host.StartAsync(); // add listener
+
+            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
+            JObject dummyPayload = JObject.Parse("{}");
+            var request = CreateDispatchRequest("EventGridThrowsException", dummyPayload);
+            var response = await handler.ConvertAsync(request, CancellationToken.None);
+
+            string responseContent = await response.Content.ReadAsStringAsync();
+            Assert.Equal("Exception while executing function: EventGridThrowsException", responseContent);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         }
 
         static HttpRequestMessage CreateUnsubscribeRequest(string funcName)
