@@ -35,8 +35,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             await host.StartAsync(); // add listener
 
             var request = CreateUnsubscribeRequest("TestEventGrid");
-            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
-            var response = await handler.ConvertAsync(request, CancellationToken.None);
+            var response = await ext.ConvertAsync(request, CancellationToken.None);
 
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         }
@@ -55,8 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var request = CreateDispatchRequest("TestEventGrid",
                 JObject.Parse(@"{'subject':'one','data':{'prop':'alpha'}}"),
                 JObject.Parse(@"{'subject':'two','data':{'prop':'beta'}}"));
-            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
-            var response = await handler.ConvertAsync(request, CancellationToken.None);
+            var response = await ext.ConvertAsync(request, CancellationToken.None);
 
             // Verify that the user function was dispatched twice, in order.
             // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
@@ -73,10 +71,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<MyProg2>(ext);
             await host.StartAsync(); // add listener
 
-            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             JObject dummyPayload = JObject.Parse("{}");
             var request = CreateDispatchRequest("RandomFunctionName", dummyPayload);
-            var response = await handler.ConvertAsync(request, CancellationToken.None);
+            var response = await ext.ConvertAsync(request, CancellationToken.None);
 
             string responseContent = await response.Content.ReadAsStringAsync();
             Assert.Equal("cannot find function: 'RandomFunctionName'", responseContent);
@@ -90,10 +87,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<MyProg2>(ext);
             await host.StartAsync(); // add listener
 
-            IAsyncConverter<HttpRequestMessage, HttpResponseMessage> handler = ext;
             JObject dummyPayload = JObject.Parse("{}");
             var request = CreateDispatchRequest("EventGridThrowsException", dummyPayload);
-            var response = await handler.ConvertAsync(request, CancellationToken.None);
+            var response = await ext.ConvertAsync(request, CancellationToken.None);
 
             string responseContent = await response.Content.ReadAsStringAsync();
             Assert.Equal("Exception while executing function: EventGridThrowsException", responseContent);

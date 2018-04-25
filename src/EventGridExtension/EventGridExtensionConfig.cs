@@ -52,7 +52,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             _listeners.Add(key, listener);
         }
 
-        async Task<HttpResponseMessage> IAsyncConverter<HttpRequestMessage, HttpResponseMessage>.ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
+        public async Task<HttpResponseMessage> ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
         {
             var response = ProcessAsync(input);
             return await response;
