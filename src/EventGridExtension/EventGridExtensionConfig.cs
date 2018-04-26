@@ -33,6 +33,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             Uri url = context.GetWebhookHandler();
             _logger.LogInformation($"registered EventGrid Endpoint = {url?.GetLeftPart(UriPartial.Path)}");
 
+            // Register our extension binding providers
             // use converterManager as a hashTable
             // also take benefit of identity converter
             context
@@ -43,6 +44,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
                 .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
 
+            // Register the output binding
+            context
+                .AddBindingRule<EventGridOutputAttribute>()
+                .WhenIsNotNull(nameof(EventGridOutputAttribute.SasKey))
+                .WhenIsNotNull(nameof(EventGridOutputAttribute.TopicEndpoint))
+                .BindToCollector(a => new EventGridOutputAsyncCollector(a));
         }
 
         private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();

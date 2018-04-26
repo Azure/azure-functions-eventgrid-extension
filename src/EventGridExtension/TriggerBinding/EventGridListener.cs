@@ -1,10 +1,10 @@
-﻿using Microsoft.Azure.WebJobs.Host.Executors;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Host.Executors;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public class EventGridListener : Microsoft.Azure.WebJobs.Host.Listeners.IListener
+    public class EventGridListener : Host.Listeners.IListener
     {
         public ITriggeredFunctionExecutor Executor { private set; get; }
 
