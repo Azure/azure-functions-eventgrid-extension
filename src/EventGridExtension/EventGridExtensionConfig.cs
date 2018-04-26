@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -6,6 +9,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
@@ -20,6 +24,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         private ILogger _logger;
+        private readonly Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> _converter;
+
+        // for end to end testing
+        internal EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
+        {
+            _converter = converter;
+        }
+
+        // default constructor
+        public EventGridExtensionConfig()
+        {
+            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.TopicKeySetting)), attr.TopicEndpointUri));
+        }
 
         public void Initialize(ExtensionConfigContext context)
         {
@@ -33,6 +50,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             Uri url = context.GetWebhookHandler();
             _logger.LogInformation($"registered EventGrid Endpoint = {url?.GetLeftPart(UriPartial.Path)}");
 
+            // Register our extension binding providers
             // use converterManager as a hashTable
             // also take benefit of identity converter
             context
@@ -43,6 +61,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
                 .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
 
+            // Register the output binding
+            var rule = context
+                .AddBindingRule<EventGridAttribute>()
+                .AddConverter<string, EventGridEvent>((str) => JsonConvert.DeserializeObject<EventGridEvent>(str))
+                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>());
+            rule.BindToCollector(_converter);
+            rule.AddValidator((a, t) =>
+            {
+                // if app setting is missing, it will be caught by runtime
+                // this logic tries to validate the practicality of attribute properties
+                if (string.IsNullOrWhiteSpace(a.TopicKeySetting))
+                {
+                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.TopicKeySetting)}' property must be the name of an application setting containing the Topic Key");
+                }
+
+                if (!Uri.IsWellFormedUriString(a.TopicEndpointUri, UriKind.Absolute))
+                {
+                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.TopicEndpointUri)}' property must be a valid absolute Uri");
+                }
+            });
         }
 
         private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();

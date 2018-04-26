@@ -1,9 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Indexers;
+using Microsoft.Rest.Azure;
+using Moq;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
@@ -90,6 +96,80 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             await host.CallAsync(functionName, args);
             Assert.Equal(expectedOutput, _functionOut);
             _functionOut = null;
+        }
+
+        [Fact]
+        public async Task OutputBindingInvalidCredentialTests()
+        {
+            // validation is done at indexing time
+            var host = TestHelpers.NewHost<OutputBindingParams>();
+            // appsetting is missing
+            var indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"Unable to resolve app setting for property '{nameof(EventGridAttribute)}.{nameof(EventGridAttribute.TopicEndpointUri)}'. Make sure the app setting exists and has a valid value.", indexException.InnerException.Message);
+
+            var nameResolverMock = new Mock<INameResolver>();
+            // invalid uri
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("this could be anything...so lets try yolo");
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+
+            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"The '{nameof(EventGridAttribute.TopicEndpointUri)}' property must be a valid absolute Uri", indexException.InnerException.Message);
+
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
+            // invalid sas token
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("");
+
+            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"The '{nameof(EventGridAttribute.TopicKeySetting)}' property must be the name of an application setting containing the Topic Key", indexException.InnerException.Message);
+        }
+
+
+        [Theory]
+        [InlineData("SingleEvent", "0")]
+        [InlineData("SingleReturnEvent", "0")]
+        // space sperated string as event ids
+        [InlineData("ArrayEvent", "0 1 2 3 4")]
+        [InlineData("CollectorEvent", "0 1 2 3")]
+        [InlineData("AsyncCollectorEvent", "0 1 2 3 4 5 6")]
+        [InlineData("StringEvents", "0 1 2 3 4")]
+        [InlineData("JObjectEvents", "0 1 2 3 4")]
+        public async Task OutputBindingParamsTests(string functionName, string expectedCollection)
+        {
+            List<EventGridEvent> output = new List<EventGridEvent>();
+
+            Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> customConverter = (attr =>
+            {
+                var mockClient = new Mock<IEventGridClient>();
+                mockClient.Setup(x => x.PublishEventsWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<IList<EventGridEvent>>(), It.IsAny<Dictionary<string, List<string>>>(), It.IsAny<CancellationToken>()))
+                      .Returns((string topicHostname, IList<EventGridEvent> events, Dictionary<string, List<string>> customHeaders, CancellationToken cancel) =>
+                      {
+                          foreach (EventGridEvent eve in events)
+                          {
+                              output.Add(eve);
+                          }
+                          return Task.FromResult(new AzureOperationResponse());
+                      });
+                return new EventGridAsyncCollector(mockClient.Object, attr.TopicEndpointUri);
+            });
+            // use moq eventgridclient for test extension
+            var customExtension = new EventGridExtensionConfig(customConverter);
+
+            var nameResolverMock = new Mock<INameResolver>();
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+
+            var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, nameResolverMock.Object);
+
+            await host.CallAsync($"OutputBindingParams.{functionName}");
+
+            var expectedEvents = new HashSet<string>(expectedCollection.Split(' '));
+            foreach (EventGridEvent eve in output)
+            {
+                Assert.True(expectedEvents.Remove((string)eve.Data));
+            }
+            Assert.True(expectedEvents.Count == 0);
         }
 
         public class EventGridParams
@@ -181,6 +261,89 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             public void TestCloudEventToJObject([EventGridTrigger] JObject value)
             {
                 _functionOut = (string)value["eventType"];
+            }
+        }
+
+        public class OutputBindingParams
+        {
+            public void SingleEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent single)
+            {
+                single = new EventGridEvent()
+                {
+                    Data = "0"
+                };
+            }
+
+            [return: EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")]
+            public EventGridEvent SingleReturnEvent()
+            {
+                return new EventGridEvent()
+                {
+                    Data = "0"
+                };
+            }
+
+            public void ArrayEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent[] array)
+            {
+                array = new EventGridEvent[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    array[i] = new EventGridEvent()
+                    {
+                        Data = i.ToString()
+                    };
+                }
+            }
+
+            public void CollectorEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    collector.Add(new EventGridEvent()
+                    {
+                        Data = i.ToString()
+                    });
+                }
+            }
+
+            public async Task AsyncCollectorEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
+            {
+                for (int i = 0; i < 7; i++)
+                {
+                    await asyncCollector.AddAsync(new EventGridEvent()
+                    {
+                        Data = i.ToString()
+                    });
+
+                    if (i % 3 == 0)
+                    {
+                        // flush mulitple times, test whether the internal buffer is cleared
+                        await asyncCollector.FlushAsync();
+                    }
+                }
+            }
+
+            // assume converter is applied correctly with other output binding types
+            public void StringEvents([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string[] strings)
+            {
+                strings = new string[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    strings[i] = $@"
+                    {{
+                        ""Data"" : ""{i}""
+                    }}";
+                }
+            }
+
+            // assume converter is applied correctly with other output binding types
+            public void JObjectEvents([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject[] jobjects)
+            {
+                jobjects = new JObject[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    jobjects[i] = new JObject(new JProperty("Data", i.ToString()));
+                }
             }
         }
     }
