@@ -1,25 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
-using Microsoft.Azure.WebJobs.Host.Config;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
-    public class TestListener : IWebHookProvider
+    public class TestListener
     {
-
-        Uri IWebHookProvider.GetUrl(IExtensionConfigProvider extension)
-        {
-            // Called by configuration registration. URI here doesn't matter.
-            return new Uri("http://localhost");
-        }
-
-        static private StringBuilder _log = new StringBuilder();
+        // multiple events are processed concurrently
+        static private ConcurrentDictionary<string, string> _log = new ConcurrentDictionary<string, string>();
 
         public TestListener()
         {
@@ -40,7 +34,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         }
 
-
         // Test that an event payload with multiple events causes multiple dispatches,
         // and that each instance has correct binding data.
         // This is the fundamental difference between a regular HTTP trigger and a EventGrid trigger.
@@ -56,9 +49,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 JObject.Parse(@"{'subject':'two','data':{'prop':'beta'}}"));
             var response = await ext.ConvertAsync(request, CancellationToken.None);
 
-            // Verify that the user function was dispatched twice, in order.
+            // Verify that the user function was dispatched twice, NOT necessarily in order
             // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
-            Assert.Equal("[Dispatch:one, alpha][Dispatch:two, beta]", _log.ToString());
+            _log.TryGetValue("one", out string alpha);
+            _log.TryGetValue("two", out string beta);
+            Assert.Equal("alpha", alpha);
+            Assert.Equal("beta", beta);
             // TODO - Verify that we return from webhook before the dispatch is finished
             // https://github.com/Azure/azure-functions-eventgrid-extension/issues/10
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -131,7 +127,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [EventGridTrigger] JObject value,
                 [BindingData("{data.prop}")] string prop)
             {
-                _log.Append($"[Dispatch:{(string)value["subject"]}, {prop}]");
+                // if the key already exists, we should error
+                if (!_log.TryAdd((string)value["subject"], prop))
+                {
+                    throw new InvalidOperationException($"duplicate subject '{(string)value["subject"]}'");
+                }
             }
         }
 
