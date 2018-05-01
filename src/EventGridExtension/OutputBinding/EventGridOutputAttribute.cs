@@ -10,23 +10,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     public sealed class EventGridOutputAttribute : Attribute
     {
 #pragma warning disable CS0618 // Type or member is obsolete
-        /// <summary>
-        /// Gets or sets the topic endpoint setting.
-        /// </summary>
-        /// <value>
-        /// The topic endpoint setting.
-        /// </value>
+        /// <summary>Gets or sets the topic hostname setting. Eg: topic1.westus2-1.eventgrid.azure.net</summary>
         [AppSetting]
 #pragma warning restore CS0618 // Type or member is obsolete
-        public string TopicEndpoint { get; set; }
+        public string TopicHostname { get; set; }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        /// <summary>
-        /// Gets or sets the sas key setting.
-        /// </summary>
-        /// <value>
-        /// The sas key setting.
-        /// </value>
+        /// <summary>Gets or sets the sas key setting.</summary>
         [AppSetting]
 #pragma warning restore CS0618 // Type or member is obsolete
         public string SasKey { get; set; }
