@@ -13,11 +13,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
     public class TestListener
     {
         // multiple events are processed concurrently
-        static private ConcurrentDictionary<string, string> _log;
+        static private ConcurrentDictionary<string, string> _log = new ConcurrentDictionary<string, string>();
 
         public TestListener()
         {
-            _log = new ConcurrentDictionary<string, string>();
+            _log.Clear();
         }
 
         // Unsubscribe gives a 202.
@@ -51,10 +51,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             // Verify that the user function was dispatched twice, NOT necessarily in order
             // Also verifies each instance gets its own proper binding data (from FakePayload.Prop)
-            string alpha = null;
-            string beta = null;
-            _log.TryGetValue("one", out alpha);
-            _log.TryGetValue("two", out beta);
+            _log.TryGetValue("one", out string alpha);
+            _log.TryGetValue("two", out string beta);
             Assert.Equal("alpha", alpha);
             Assert.Equal("beta", beta);
             // TODO - Verify that we return from webhook before the dispatch is finished
