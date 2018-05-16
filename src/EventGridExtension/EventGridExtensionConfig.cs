@@ -87,7 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 SubscriptionValidationResponse validationResponse = new SubscriptionValidationResponse { ValidationResponse = validationEvent.ValidationCode };
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
-                _logger.LogInformation($"perform handshake with eventGrid for endpoint: {req.RequestUri}");
+                _logger.LogInformation($"perform handshake with eventGrid for function: {functionName}");
                 return returnMessage;
             }
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
