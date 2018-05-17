@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
@@ -9,6 +10,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         private static EventGridClient _client;
 
+        private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
         private EventGridAttribute _attribute;
 
         public EventGridOutputAsyncCollector(EventGridAttribute attr)
@@ -21,12 +23,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
         }
 
-        public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.GetTopicHostname(), new[] { item }, cancellationToken);
-
-        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
-            // do nothing; we are sending every request as they come in to AddAsync so there's nothing to flush
+            _eventsToSend.Add(item);
             return Task.CompletedTask;
         }
+
+        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.GetTopicHostname(), _eventsToSend, cancellationToken);
     }
 }
