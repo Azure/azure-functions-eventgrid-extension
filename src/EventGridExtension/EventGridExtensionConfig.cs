@@ -46,9 +46,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             // Register the output binding
             context
-                .AddBindingRule<EventGridOutputAttribute>()
-                .WhenIsNotNull(nameof(EventGridOutputAttribute.SasKey))
-                .WhenIsNotNull(nameof(EventGridOutputAttribute.TopicHostname))
+                .AddBindingRule<EventGridAttribute>()
+                .WhenIsNotNull(nameof(EventGridAttribute.SasKey))
+                .WhenIsNotNull(nameof(EventGridAttribute.TopicEndpointUri))
                 .BindToCollector(a => new EventGridOutputAsyncCollector(a));
         }
 

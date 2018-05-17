@@ -9,9 +9,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         private static EventGridClient _client;
 
-        private EventGridOutputAttribute _attribute;
+        private EventGridAttribute _attribute;
 
-        public EventGridOutputAsyncCollector(EventGridOutputAttribute attr)
+        public EventGridOutputAsyncCollector(EventGridAttribute attr)
         {
             _attribute = attr;
 
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
         }
 
-        public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.TopicHostname, new[] { item }, cancellationToken);
+        public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.GetTopicHostname(), new[] { item }, cancellationToken);
 
         public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
