@@ -29,6 +29,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             return Task.CompletedTask;
         }
 
-        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.GetTopicHostname(), _eventsToSend, cancellationToken);
+        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
     }
 }
