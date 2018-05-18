@@ -43,6 +43,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 #pragma warning restore CS0618 // Type or member is obsolete
         public string SasKey { get; set; }
 
+        /// <summary>
+        /// <c>true</c> if messages should be collected and sent to the Event Grid topic only when the collector flushes, <c>false</c> to send messages immediately when added to the collector
+        /// </summary>
+        /// <remarks>The behavior when set to <c>false</c> is only able to be honored by .Net execution; other runtimes only accept buffered collections.</remarks>
+        public bool Buffered { get; set; } = true;
+
         // Internal because we don't want this showing up in the Attribute's intellisense when a user adds
         // it to the parameter signature in the Function definition
         internal string TopicHostname { get; private set; }

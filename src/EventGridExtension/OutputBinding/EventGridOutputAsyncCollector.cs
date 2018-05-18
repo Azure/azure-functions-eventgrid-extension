@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.EventGrid;
@@ -25,10 +26,25 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
-            _eventsToSend.Add(item);
-            return Task.CompletedTask;
+            if (_attribute.Buffered)
+            {
+                _eventsToSend.Add(item);
+                return Task.CompletedTask;
+            }
+            else
+            {
+                return _client.PublishEventsAsync(_attribute.TopicHostname, new[] { item }, cancellationToken);
+            }
         }
 
-        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken)) => _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
+        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (_eventsToSend.Any())
+            {
+                return _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }
