@@ -82,7 +82,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 var returnMessage = new HttpResponseMessage(HttpStatusCode.OK);
                 returnMessage.Content = new StringContent(JsonConvert.SerializeObject(validationResponse));
                 _tracer.Trace(new TraceEvent(System.Diagnostics.TraceLevel.Info,
-                    $"perform handshake with eventGrid for endpoint: {req.RequestUri}"));
+                    $"perform handshake with eventGrid for function: {functionName}"));
                 return returnMessage;
             }
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
