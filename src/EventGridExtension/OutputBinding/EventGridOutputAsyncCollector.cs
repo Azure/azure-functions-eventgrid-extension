@@ -37,14 +37,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
         }
 
-        public Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_eventsToSend.Any())
             {
-                return _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
+                await _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
+                _eventsToSend.Clear();
             }
-
-            return Task.CompletedTask;
         }
     }
 }
