@@ -26,15 +26,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (_attribute.Buffered)
-            {
-                _eventsToSend.Add(item);
-                return Task.CompletedTask;
-            }
-            else
-            {
-                return _client.PublishEventsAsync(_attribute.TopicHostname, new[] { item }, cancellationToken);
-            }
+            _eventsToSend.Add(item);
+
+            return Task.CompletedTask;
         }
 
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
