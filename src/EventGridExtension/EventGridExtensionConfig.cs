@@ -45,11 +45,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
 
             // Register the output binding
-            context
-                .AddBindingRule<EventGridAttribute>()
-                .WhenIsNotNull(nameof(EventGridAttribute.SasKey))
-                .WhenIsNotNull(nameof(EventGridAttribute.TopicEndpointUri))
-                .BindToCollector(a => new EventGridAsyncCollector(a));
+            var rule = context
+                .AddBindingRule<EventGridAttribute>();
+            rule.BindToCollector(a => new EventGridAsyncCollector(a));
+            rule.AddValidator((a, t) =>
+            {
+                if (string.IsNullOrWhiteSpace(a.SasKey))
+                {
+                    throw new InvalidOperationException($@"The Shared Access Signature Key must be set via the '{nameof(a.SasKey)}' property");
+                }
+
+                if (string.IsNullOrWhiteSpace(a.TopicEndpointUri))
+                {
+                    throw new InvalidOperationException($@"The Topic Endpoint Uri must be set via the '{nameof(a.TopicEndpointUri)}' property");
+                }
+            });
         }
 
         private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();
