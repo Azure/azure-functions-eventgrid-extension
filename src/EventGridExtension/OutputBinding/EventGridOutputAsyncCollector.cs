@@ -9,10 +9,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     public sealed class EventGridOutputAsyncCollector : IAsyncCollector<EventGridEvent>
     {
-        private static EventGridClient _client;
-
+        private readonly EventGridClient _client;
         private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
-        private EventGridAttribute _attribute;
+        private readonly EventGridAttribute _attribute;
 
         public EventGridOutputAsyncCollector(EventGridAttribute attr)
         {
