@@ -49,7 +49,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .AddBindingRule<EventGridAttribute>()
                 .WhenIsNotNull(nameof(EventGridAttribute.SasKey))
                 .WhenIsNotNull(nameof(EventGridAttribute.TopicEndpointUri))
-                .BindToCollector(a => new EventGridOutputAsyncCollector(a));
+                .BindToCollector(a => new EventGridAsyncCollector(a));
         }
 
         private Dictionary<string, EventGridListener> _listeners = new Dictionary<string, EventGridListener>();

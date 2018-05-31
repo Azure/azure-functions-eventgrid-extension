@@ -7,13 +7,13 @@ using Microsoft.Azure.EventGrid.Models;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public sealed class EventGridOutputAsyncCollector : IAsyncCollector<EventGridEvent>
+    public sealed class EventGridAsyncCollector : IAsyncCollector<EventGridEvent>
     {
         private readonly EventGridClient _client;
         private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
         private readonly EventGridAttribute _attribute;
 
-        public EventGridOutputAsyncCollector(EventGridAttribute attr)
+        public EventGridAsyncCollector(EventGridAttribute attr)
         {
             _attribute = attr;
 
