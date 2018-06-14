@@ -5,7 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class TestHelpers
     {
-        public static JobHost NewHost<T>(EventGridExtensionConfig ext = null)
+        public static JobHost NewHost<T>(EventGridExtensionConfig ext = null, INameResolver nameResolver = null)
         {
             JobHostConfiguration config = new JobHostConfiguration();
             config.HostId = Guid.NewGuid().ToString("n");
@@ -15,6 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             config.AddExtension(ext ?? new EventGridExtensionConfig());
             config.AddExtension(new TestExtensionConfig());
             config.LoggerFactory = new LoggerFactory();
+            config.NameResolver = nameResolver ?? new DefaultNameResolver();
             var host = new JobHost(config);
             return host;
         }

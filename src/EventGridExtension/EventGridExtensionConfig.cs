@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
@@ -20,6 +21,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         private ILogger _logger;
+        private readonly Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> _converter;
+
+        // for end to end testing
+        public EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
+        {
+            _converter = converter;
+        }
+
+        // default constructor
+        public EventGridExtensionConfig()
+        {
+            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.SasKey)), attr.TopicHostname));
+        }
 
         public void Initialize(ExtensionConfigContext context)
         {
@@ -47,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             // Register the output binding
             var rule = context
                 .AddBindingRule<EventGridAttribute>();
-            rule.BindToCollector(a => new EventGridAsyncCollector(a));
+            rule.BindToCollector(_converter);
             rule.AddValidator((a, t) =>
             {
                 if (string.IsNullOrWhiteSpace(a.SasKey))

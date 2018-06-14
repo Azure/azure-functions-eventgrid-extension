@@ -9,18 +9,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     public sealed class EventGridAsyncCollector : IAsyncCollector<EventGridEvent>
     {
-        private readonly EventGridClient _client;
+        // use IEventGridClient for mocking test
+        private readonly IEventGridClient _client;
         private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
-        private readonly EventGridAttribute _attribute;
+        private readonly string _topicHostname;
 
-        public EventGridAsyncCollector(EventGridAttribute attr)
+        public EventGridAsyncCollector(IEventGridClient client, string topicHostname)
         {
-            _attribute = attr;
-
-            if (_client == null)
-            {
-                _client = new EventGridClient(new TopicCredentials(_attribute.SasKey));
-            }
+            _client = client;
+            _topicHostname = topicHostname;
         }
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
@@ -34,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         {
             if (_eventsToSend.Any())
             {
-                await _client.PublishEventsAsync(_attribute.TopicHostname, _eventsToSend, cancellationToken);
+                await _client.PublishEventsAsync(_topicHostname, _eventsToSend, cancellationToken);
                 _eventsToSend.Clear();
             }
         }

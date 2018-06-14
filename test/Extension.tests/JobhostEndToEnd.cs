@@ -1,9 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Indexers;
+using Microsoft.Rest.Azure;
+using Moq;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
@@ -90,6 +95,55 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             await host.CallAsync(functionName, args);
             Assert.Equal(expectedOutput, _functionOut);
             _functionOut = null;
+        }
+
+        [Fact]
+        public async Task OutputBindingTests()
+        {
+            List<EventGridEvent> output = new List<EventGridEvent>();
+
+            Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> customConverter = (attr =>
+            {
+                // TODO register clients, different function different client
+                var mockClient = new Mock<IEventGridClient>();
+                mockClient.Setup(x => x.PublishEventsWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<IList<EventGridEvent>>(), It.IsAny<Dictionary<string, List<string>>>(), It.IsAny<CancellationToken>()))
+                      .Returns((string topicHostname, IList<EventGridEvent> events, Dictionary<string, List<string>> customHeaders, CancellationToken cancel) =>
+                      {
+                          foreach (EventGridEvent eve in events)
+                          {
+                              output.Add(eve);
+                          }
+                          return Task.FromResult(new AzureOperationResponse());
+                      });
+                return new EventGridAsyncCollector(mockClient.Object, attr.TopicHostname);
+            });
+            // use moq eventgridclient for test extension
+            var customExtension = new EventGridExtensionConfig(customConverter);
+
+            var nameResolverMock = new Mock<INameResolver>();
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+
+            var host = TestHelpers.NewHost<MyProg4>(customExtension, nameResolverMock.Object);
+
+            await host.CallAsync("MyProg4.TestOutputTypes");
+
+            // verify that for each output type, events were "sent" correctly
+            Dictionary<string, HashSet<int>> matches = new Dictionary<string, HashSet<int>>();
+            // initialize match
+            matches.Add("singleEvent", new HashSet<int>(new int[] { 0 }));
+            matches.Add("arrayEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
+            matches.Add("collectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
+            matches.Add("asyncCollectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
+
+            foreach (EventGridEvent eve in output)
+            {
+                HashSet<int> set;
+                Assert.True(matches.TryGetValue(eve.EventType, out set));
+                Assert.True(set.Remove((int)eve.Data));
+            }
+
+            Assert.True(matches.Values.All(s => s.Count == 0));
         }
 
         public class EventGridParams
@@ -181,6 +235,57 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             public void TestCloudEventToJObject([EventGridTrigger] JObject value)
             {
                 _functionOut = (string)value["eventType"];
+            }
+        }
+
+        public class MyProg4
+        {
+            public void TestOutputTypes(
+                // TODO add constructor
+                [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] out EventGridEvent single,
+                [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] out EventGridEvent[] array,
+                [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] ICollector<EventGridEvent> collector,
+                [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
+            {
+                // does not actually send, custruct simplest event possible
+                single = new EventGridEvent()
+                {
+                    EventType = "singleEvent",
+                    Data = 0
+                };
+
+                array = new EventGridEvent[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    array[i] = new EventGridEvent()
+                    {
+                        EventType = "arrayEvent",
+                        Data = i
+                    };
+                }
+
+                for (int i = 0; i < 4; i++)
+                {
+                    collector.Add(new EventGridEvent()
+                    {
+                        EventType = "collectorEvent",
+                        Data = i
+                    });
+                }
+
+                for (int i = 0; i < 7; i++)
+                {
+                    asyncCollector.AddAsync(new EventGridEvent()
+                    {
+                        EventType = "asyncCollectorEvent",
+                        Data = i
+                    }).Wait();
+                    if (i % 3 == 0)
+                    {
+                        // flush mulitple times, test whether the internal buffer is cleared
+                        asyncCollector.FlushAsync().Wait();
+                    }
+                }
             }
         }
     }
