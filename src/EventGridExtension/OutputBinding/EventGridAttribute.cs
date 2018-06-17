@@ -25,12 +25,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 // (via a call to GetTopicHostname)
                 if (Uri.TryCreate(value, UriKind.Absolute, out Uri endpointUri))
                 {
-                    this.TopicHostname = endpointUri.Host;
+                    TopicHostname = endpointUri.Host;
                 }
                 else
                 {
                     System.Diagnostics.Debug.Write($@"WARNING: Invalid topic endpoint URI ({value}). Expected an absolute URI value");
-                    this.TopicHostname = null; // if this was set previously, need to clear it out now
+                    TopicHostname = null; // if this was set previously, need to clear it out now
                 }
             }
         }
