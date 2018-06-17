@@ -10,10 +10,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     public sealed class EventGridAttribute : Attribute
     {
         private string _topicEndpointUri;
-#pragma warning disable CS0618 // Type or member is obsolete
         /// <summary>Gets or sets the topic events endpoint URI. Eg: https://topic1.westus2-1.eventgrid.azure.net/api/events </summary>
         [AppSetting]
-#pragma warning restore CS0618 // Type or member is obsolete
         public string TopicEndpointUri
         {
             get => _topicEndpointUri;
@@ -37,10 +35,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
         }
 
-#pragma warning disable CS0618 // Type or member is obsolete
         /// <summary>Gets or sets the sas key setting.</summary>
         [AppSetting]
-#pragma warning restore CS0618 // Type or member is obsolete
         public string SasKey { get; set; }
 
         // Internal because we don't want this showing up in the Attribute's intellisense when a user adds
