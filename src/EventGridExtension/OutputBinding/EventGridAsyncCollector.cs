@@ -14,6 +14,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
         private readonly string _topicHostname;
 
+        private ManualResetEventSlim _canAdd = new ManualResetEventSlim(true);
+
         public EventGridAsyncCollector(IEventGridClient client, string topicHostname)
         {
             _client = client;
@@ -22,6 +24,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
+            _canAdd.Wait(); // spinlock while flushing takes place; avoid modifying collection during the Publish() operation
+
             _eventsToSend.Add(item);
 
             return Task.CompletedTask;
@@ -29,10 +33,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (_eventsToSend.Any())
+            try
             {
-                await _client.PublishEventsAsync(_topicHostname, _eventsToSend, cancellationToken);
-                _eventsToSend.Clear();
+                _canAdd.Reset();
+
+                if (_eventsToSend.Any())
+                {
+                    await _client.PublishEventsAsync(_topicHostname, _eventsToSend, cancellationToken);
+                    _eventsToSend.Clear();
+                }
+            }
+            finally
+            {
+                _canAdd.Set();
             }
         }
     }
