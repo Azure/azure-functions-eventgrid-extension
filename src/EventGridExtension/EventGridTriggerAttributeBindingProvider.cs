@@ -53,7 +53,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public bool IsSupportedBindingType(Type t)
         {
-            return (t == typeof(EventGridEvent) || t == typeof(string) || t == typeof(JObject));
+            return (t == typeof(EventGridEvent) || t == typeof(string) || t.Name == "JObject");
         }
 
         internal class EventGridTriggerBinding : ITriggerBinding
@@ -114,7 +114,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 };
 
                 // convert to parameterType
-                // TODO use converters
                 object argument;
                 if (_parameter.ParameterType == typeof(string))
                 {
@@ -124,9 +123,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 {
                     argument = triggerValue.ToObject<EventGridEvent>();
                 }
-                else
+                else if (_parameter.ParameterType == typeof(JObject))
                 {
                     argument = triggerValue;
+                }
+                else
+                {
+                    // convert to jobject of specific newtonsoft version
+                    var method = _parameter.ParameterType.GetMethod("Parse", new Type[] { typeof(string) });
+                    argument = method.Invoke(null, new object[] { triggerValue.ToString() });
                 }
 
                 IValueBinder valueBinder = new EventGridValueBinder(_parameter, argument);
