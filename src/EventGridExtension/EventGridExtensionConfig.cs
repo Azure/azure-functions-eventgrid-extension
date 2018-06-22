@@ -92,12 +92,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
             else if (String.Equals(eventTypeHeader, "Notification", StringComparison.OrdinalIgnoreCase))
             {
-                string jsonArray = await req.Content.ReadAsStringAsync();
-                List<JObject> events = JsonConvert.DeserializeObject<List<JObject>>(jsonArray);
-                List<Task<FunctionResult>> executions = new List<Task<FunctionResult>>();
+                JArray events = null;
+                string requestContent = await req.Content.ReadAsStringAsync();
+                var token = JToken.Parse(requestContent);
+                if (token.Type == JTokenType.Array)
+                {
+                    // eventgrid schema
+                    events = (JArray)token;
+                }
+                else if (token.Type == JTokenType.Object)
+                {
+                    // cloudevent schema
+                    events = new JArray
+                    {
+                        token
+                    };
+                }
 
+                List<Task<FunctionResult>> executions = new List<Task<FunctionResult>>();
                 foreach (var ev in events)
                 {
+                    // assume each event is a JObject
                     TriggeredFunctionData triggerData = new TriggeredFunctionData
                     {
                         TriggerValue = ev

@@ -22,7 +22,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             ParameterInfo[] arrayParam = methodbase.GetParameters();
 
             ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null);
-            JObject eve = JObject.Parse(FakeData.singleEvent);
+            JObject eve = JObject.Parse(FakeData.eventGridEvent);
             JObject data = (JObject)eve["data"];
 
             // JObject as input
@@ -30,12 +30,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             Assert.Equal(data, triggerDataWithEvent.BindingData["data"]);
 
             // string as input
-            ITriggerData triggerDataWithString = await binding.BindAsync(FakeData.singleEvent, null);
+            ITriggerData triggerDataWithString = await binding.BindAsync(FakeData.eventGridEvent, null);
             Assert.Equal(data, triggerDataWithString.BindingData["data"]);
 
             // test invalid, batch of events
-            FormatException formatException = await Assert.ThrowsAsync<FormatException>(() => binding.BindAsync(FakeData.arrayOfOneEvent, null));
-            Assert.Equal($"Unable to parse {FakeData.arrayOfOneEvent} to {typeof(JObject)}", formatException.Message);
+            FormatException formatException = await Assert.ThrowsAsync<FormatException>(() => binding.BindAsync(FakeData.eventGridEvents, null));
+            Assert.Equal($"Unable to parse {FakeData.eventGridEvents} to {typeof(JObject)}", formatException.Message);
 
             // test invalid, random object
             var testObject = new TestClass();

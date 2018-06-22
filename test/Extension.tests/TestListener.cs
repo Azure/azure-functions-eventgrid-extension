@@ -61,6 +61,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Fact]
+        public async Task TestCloudEvent()
+        {
+            // individual elements
+            var ext = new EventGridExtensionConfig();
+            var host = TestHelpers.NewHost<MyProg1>(ext);
+            await host.StartAsync(); // add listener
+
+            var request = CreateSingleRequest("TestEventGrid",
+                JObject.Parse(@"{'subject':'one','data':{'prop':'alpha'}}"));
+            var response = await ext.ConvertAsync(request, CancellationToken.None);
+
+            // verifies each instance gets its own proper binding data (from FakePayload.Prop)
+            _log.TryGetValue("one", out string alpha);
+            Assert.Equal("alpha", alpha);
+            Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        }
+
+        [Fact]
         public async Task WrongFunctionNameTest()
         {
             var ext = new EventGridExtensionConfig();
@@ -99,6 +117,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             return request;
         }
 
+        static HttpRequestMessage CreateSingleRequest(string funcName, JObject item)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
+            request.Headers.Add("aeg-event-type", "Notification");
+            request.Content = new StringContent(item.ToString(), Encoding.UTF8, "application/json");
+            return request;
+        }
+
         static HttpRequestMessage CreateDispatchRequest(string funcName, params JObject[] items)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/?functionName=" + funcName);
@@ -108,10 +134,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             {
                 payloadArray.Add(item);
             }
-            request.Content = new StringContent(
-                payloadArray.ToString(),
-                Encoding.UTF8,
-                "application/json");
+            request.Content = new StringContent(payloadArray.ToString(), Encoding.UTF8, "application/json");
             return request;
         }
 
