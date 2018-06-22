@@ -14,7 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         public async Task ConsumeEventGridEventTest()
         {
 
-            JObject eve = JObject.Parse(FakeData.singleEvent);
+            JObject eve = JObject.Parse(FakeData.eventGridEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
             };
@@ -37,46 +37,58 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Fact]
+        public async Task ConsumeCloudEventTest()
+        {
+            JObject eve = JObject.Parse(FakeData.cloudEvent);
+            var args = new Dictionary<string, object>{
+                { "value", eve }
+            };
+
+            var expectOut = (string)eve["eventType"];
+
+            var host = TestHelpers.NewHost<MyProg2>();
+
+            await host.CallAsync("MyProg2.TestCloudEventToString", args);
+            Assert.Equal(functionOut, expectOut);
+            functionOut = null;
+
+            await host.CallAsync("MyProg2.TestCloudEventToJObject", args);
+            Assert.Equal(functionOut, expectOut);
+            functionOut = null;
+        }
+
+        [Fact]
         public async Task ValidJsonBindingDataTests()
         {
             var host = TestHelpers.NewHost<MyProg3>();
 
-            JObject eve = JObject.Parse(FakeData.singleEvent);
             var args = new Dictionary<string, object>{
-                { "value", eve }
+                { "value", JObject.Parse(FakeData.eventGridEvent) }
             };
 
             await host.CallAsync("MyProg3.TestJObject", args);
             Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", functionOut);
             functionOut = null;
 
-            eve = JObject.Parse(FakeData.stringDataEvent);
-            args = new Dictionary<string, object>{
-                { "value", eve }
-            };
-
+            args["value"] = JObject.Parse(FakeData.stringDataEvent);
             await host.CallAsync("MyProg3.TestString", args);
             Assert.Equal("goodBye world", functionOut);
             functionOut = null;
 
-            eve = JObject.Parse(FakeData.arrayDataEvent);
-            args = new Dictionary<string, object>{
-                { "value", eve }
-            };
-
+            args["value"] = JObject.Parse(FakeData.arrayDataEvent);
             await host.CallAsync("MyProg3.TestArray", args);
             Assert.Equal("ConfusedDev", functionOut);
             functionOut = null;
 
-            eve = JObject.Parse(FakeData.primitiveDataEvent);
-            args = new Dictionary<string, object>{
-                { "value", eve }
-            };
-
+            args["value"] = JObject.Parse(FakeData.primitiveDataEvent);
             await host.CallAsync("MyProg3.TestPrimitive", args);
             Assert.Equal("123", functionOut);
             functionOut = null;
 
+            args["value"] = JObject.Parse(FakeData.missingDataEvent);
+            await host.CallAsync("MyProg3.TestDataFieldMissing", args);
+            Assert.Equal("", functionOut);
+            functionOut = null;
         }
 
         public class MyProg1
@@ -98,6 +110,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             }
         }
 
+        public class MyProg2
+        {
+            public void TestCloudEventToString([EventGridTrigger] string value)
+            {
+                functionOut = (string)JObject.Parse(value)["eventType"];
+            }
+
+            public void TestCloudEventToJObject([EventGridTrigger] JObject value)
+            {
+                functionOut = (string)value["eventType"];
+            }
+
+        }
+
         public class MyProg3
         {
             public void TestJObject(
@@ -112,6 +138,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [BindingData("{data}")] string autoResolve)
             {
                 functionOut = autoResolve;
+            }
+
+            public void TestDataFieldMissing(
+                [EventGridTrigger] JObject value,
+                [BindingData("{data}")] string autoResovle)
+            {
+                functionOut = autoResovle;
             }
 
             // auto resolve only works for string
