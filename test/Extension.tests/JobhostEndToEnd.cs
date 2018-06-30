@@ -8,7 +8,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     public class JobhostEndToEnd
     {
-        static private string functionOut = null;
+        private static string _functionOut = null;
 
         [Fact]
         public async Task ConsumeEventGridEventTest()
@@ -21,19 +21,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var expectOut = (string)eve["subject"];
 
-            var host = TestHelpers.NewHost<MyProg1>();
+            var host = TestHelpers.NewHost<EventGridParams>();
 
-            await host.CallAsync("MyProg1.TestEventGrid", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("EventGridParams.TestEventGrid", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
 
-            await host.CallAsync("MyProg1.TestEventGridToString", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("EventGridParams.TestEventGridToString", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
 
-            await host.CallAsync("MyProg1.TestEventGridToJObject", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("EventGridParams.TestEventGridToJObject", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
         }
 
         [Fact]
@@ -46,105 +46,105 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var expectOut = (string)eve["eventType"];
 
-            var host = TestHelpers.NewHost<MyProg2>();
+            var host = TestHelpers.NewHost<CloudEventParams>();
 
-            await host.CallAsync("MyProg2.TestCloudEventToString", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("CloudEventParams.TestCloudEventToString", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
 
-            await host.CallAsync("MyProg2.TestCloudEventToJObject", args);
-            Assert.Equal(functionOut, expectOut);
-            functionOut = null;
+            await host.CallAsync("CloudEventParams.TestCloudEventToJObject", args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
         }
 
         [Fact]
-        public async Task ValidJsonBindingDataTests()
+        public async Task ValidTriggerDataResolveTests()
         {
-            var host = TestHelpers.NewHost<MyProg3>();
+            var host = TestHelpers.NewHost<TriggerParamResolve>();
 
             var args = new Dictionary<string, object>{
                 { "value", JObject.Parse(FakeData.eventGridEvent) }
             };
 
-            await host.CallAsync("MyProg3.TestJObject", args);
-            Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", functionOut);
-            functionOut = null;
+            await host.CallAsync("TriggerParamResolve.TestJObject", args);
+            Assert.Equal(@"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt", _functionOut);
+            _functionOut = null;
 
             args["value"] = JObject.Parse(FakeData.stringDataEvent);
-            await host.CallAsync("MyProg3.TestString", args);
-            Assert.Equal("goodBye world", functionOut);
-            functionOut = null;
+            await host.CallAsync("TriggerParamResolve.TestString", args);
+            Assert.Equal("goodBye world", _functionOut);
+            _functionOut = null;
 
             args["value"] = JObject.Parse(FakeData.arrayDataEvent);
-            await host.CallAsync("MyProg3.TestArray", args);
-            Assert.Equal("ConfusedDev", functionOut);
-            functionOut = null;
+            await host.CallAsync("TriggerParamResolve.TestArray", args);
+            Assert.Equal("ConfusedDev", _functionOut);
+            _functionOut = null;
 
             args["value"] = JObject.Parse(FakeData.primitiveDataEvent);
-            await host.CallAsync("MyProg3.TestPrimitive", args);
-            Assert.Equal("123", functionOut);
-            functionOut = null;
+            await host.CallAsync("TriggerParamResolve.TestPrimitive", args);
+            Assert.Equal("123", _functionOut);
+            _functionOut = null;
 
             args["value"] = JObject.Parse(FakeData.missingDataEvent);
-            await host.CallAsync("MyProg3.TestDataFieldMissing", args);
-            Assert.Equal("", functionOut);
-            functionOut = null;
+            await host.CallAsync("TriggerParamResolve.TestDataFieldMissing", args);
+            Assert.Equal("", _functionOut);
+            _functionOut = null;
         }
 
-        public class MyProg1
+        public class EventGridParams
         {
             // different argument types
             public void TestEventGrid([EventGridTrigger] EventGridEvent value)
             {
-                functionOut = value.Subject;
+                _functionOut = value.Subject;
             }
 
             public void TestEventGridToString([EventGridTrigger] string value)
             {
-                functionOut = (string)JObject.Parse(value)["subject"];
+                _functionOut = (string)JObject.Parse(value)["subject"];
             }
 
             public void TestEventGridToJObject([EventGridTrigger] JObject value)
             {
-                functionOut = (string)value["subject"];
+                _functionOut = (string)value["subject"];
             }
         }
 
-        public class MyProg2
+        public class CloudEventParams
         {
             public void TestCloudEventToString([EventGridTrigger] string value)
             {
-                functionOut = (string)JObject.Parse(value)["eventType"];
+                _functionOut = (string)JObject.Parse(value)["eventType"];
             }
 
             public void TestCloudEventToJObject([EventGridTrigger] JObject value)
             {
-                functionOut = (string)value["eventType"];
+                _functionOut = (string)value["eventType"];
             }
 
         }
 
-        public class MyProg3
+        public class TriggerParamResolve
         {
             public void TestJObject(
                 [EventGridTrigger] JObject value,
                 [BindingData("{data.fileUrl}")] string autoResolve)
             {
-                functionOut = autoResolve;
+                _functionOut = autoResolve;
             }
 
             public void TestString(
                 [EventGridTrigger] JObject value,
                 [BindingData("{data}")] string autoResolve)
             {
-                functionOut = autoResolve;
+                _functionOut = autoResolve;
             }
 
             public void TestDataFieldMissing(
                 [EventGridTrigger] JObject value,
                 [BindingData("{data}")] string autoResovle)
             {
-                functionOut = autoResovle;
+                _functionOut = autoResovle;
             }
 
             // auto resolve only works for string
@@ -152,14 +152,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [EventGridTrigger] JObject value)
             {
                 JArray data = (JArray)value["data"];
-                functionOut = (string)value["data"][0];
+                _functionOut = (string)value["data"][0];
             }
 
             public void TestPrimitive(
                 [EventGridTrigger] JObject value)
             {
                 int data = (int)value["data"];
-                functionOut = data.ToString();
+                _functionOut = data.ToString();
             }
         }
     }
