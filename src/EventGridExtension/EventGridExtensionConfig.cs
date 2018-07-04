@@ -32,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         // default constructor
         public EventGridExtensionConfig()
         {
-            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.SasKey)), attr.TopicHostname));
+            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.SasKey)), attr.TopicEndpointUri));
         }
 
         public void Initialize(ExtensionConfigContext context)
@@ -64,14 +64,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             rule.BindToCollector(_converter);
             rule.AddValidator((a, t) =>
             {
+                // if app setting is missing, it will be caught by runtime
+                // this logic tries to validate the practicality of attribute properties
                 if (string.IsNullOrWhiteSpace(a.SasKey))
                 {
-                    throw new InvalidOperationException($@"The Shared Access Signature Key must be set via the '{nameof(a.SasKey)}' property");
+                    throw new InvalidOperationException($"The'{nameof(EventGridAttribute.SasKey)}' property must be a valid sas token");
                 }
 
-                if (string.IsNullOrWhiteSpace(a.TopicEndpointUri))
+                if (!Uri.IsWellFormedUriString(a.TopicEndpointUri, UriKind.Absolute))
                 {
-                    throw new InvalidOperationException($@"The Topic Endpoint Uri must be set via the '{nameof(a.TopicEndpointUri)}' property");
+                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.TopicEndpointUri)}' property must be a valid absolute Uri");
                 }
             });
         }

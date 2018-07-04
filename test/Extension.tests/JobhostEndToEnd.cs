@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,13 +99,40 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Fact]
+        public async Task OutputBindingInvalidCredentialTests()
+        {
+            // validation is done at indexing time
+            var host = TestHelpers.NewHost<OutputBindingParams>();
+            // appsetting is missing
+            var indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"Unable to resolve app setting for property '{nameof(EventGridAttribute)}.{nameof(EventGridAttribute.TopicEndpointUri)}'. Make sure the app setting exists and has a valid value.", indexException.InnerException.Message);
+
+            var nameResolverMock = new Mock<INameResolver>();
+            // invalid uri
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("this could be anything...so lets try yolo");
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+
+            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"The '{nameof(EventGridAttribute.TopicEndpointUri)}' property must be a valid absolute Uri", indexException.InnerException.Message);
+
+            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
+            // invalid sas token
+            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("");
+
+            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
+            Assert.Equal($"The'{nameof(EventGridAttribute.SasKey)}' property must be a valid sas token", indexException.InnerException.Message);
+        }
+
+
+        [Fact]
         public async Task OutputBindingTests()
         {
             List<EventGridEvent> output = new List<EventGridEvent>();
 
             Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> customConverter = (attr =>
             {
-                // TODO register clients, different function different client
                 var mockClient = new Mock<IEventGridClient>();
                 mockClient.Setup(x => x.PublishEventsWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<IList<EventGridEvent>>(), It.IsAny<Dictionary<string, List<string>>>(), It.IsAny<CancellationToken>()))
                       .Returns((string topicHostname, IList<EventGridEvent> events, Dictionary<string, List<string>> customHeaders, CancellationToken cancel) =>
@@ -115,7 +143,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                           }
                           return Task.FromResult(new AzureOperationResponse());
                       });
-                return new EventGridAsyncCollector(mockClient.Object, attr.TopicHostname);
+                return new EventGridAsyncCollector(mockClient.Object, attr.TopicEndpointUri);
             });
             // use moq eventgridclient for test extension
             var customExtension = new EventGridExtensionConfig(customConverter);
@@ -124,9 +152,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
             nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
 
-            var host = TestHelpers.NewHost<MyProg4>(customExtension, nameResolverMock.Object);
+            var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, nameResolverMock.Object);
 
-            await host.CallAsync("MyProg4.TestOutputTypes");
+            await host.CallAsync("OutputBindingParams.TestOutputTypes");
 
             // verify that for each output type, events were "sent" correctly
             Dictionary<string, HashSet<int>> matches = new Dictionary<string, HashSet<int>>();
@@ -238,7 +266,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             }
         }
 
-        public class MyProg4
+        public class OutputBindingParams
         {
             public void TestOutputTypes(
                 // TODO add constructor

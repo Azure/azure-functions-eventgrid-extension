@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +17,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         private ManualResetEventSlim _canAdd = new ManualResetEventSlim(true);
 
-        public EventGridAsyncCollector(IEventGridClient client, string topicHostname)
+        public EventGridAsyncCollector(IEventGridClient client, string topicEndpointUri)
         {
             _client = client;
-            _topicHostname = topicHostname;
+            _topicHostname = new Uri(topicEndpointUri).Host;
         }
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
