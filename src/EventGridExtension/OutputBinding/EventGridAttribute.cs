@@ -5,7 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     /// <summary></summary>
     /// <seealso cref="System.Attribute" />
-    [AttributeUsage(validOn: AttributeTargets.Parameter)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.ReturnValue)]
     [Binding]
     public sealed class EventGridAttribute : Attribute
     {

@@ -160,6 +160,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             Dictionary<string, HashSet<int>> matches = new Dictionary<string, HashSet<int>>();
             // initialize match
             matches.Add("singleEvent", new HashSet<int>(new int[] { 0 }));
+            matches.Add("singleReturnEvent", new HashSet<int>(new int[] { 0 }));
             matches.Add("arrayEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
             matches.Add("collectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
             matches.Add("asyncCollectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
@@ -268,8 +269,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class OutputBindingParams
         {
-            public void TestOutputTypes(
-                // TODO add constructor
+            [return: EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")]
+            public EventGridEvent TestOutputTypes(
                 [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] out EventGridEvent single,
                 [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] out EventGridEvent[] array,
                 [EventGrid(TopicEndpointUri = "eventgridUri", SasKey = "eventgridKey")] ICollector<EventGridEvent> collector,
@@ -314,6 +315,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                         asyncCollector.FlushAsync().Wait();
                     }
                 }
+
+                return new EventGridEvent()
+                {
+                    EventType = "singleReturnEvent",
+                    Data = 0
+                };
             }
         }
     }
