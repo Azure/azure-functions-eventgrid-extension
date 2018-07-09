@@ -12,10 +12,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         // use IEventGridClient for mocking test
         private readonly IEventGridClient _client;
-        private readonly IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
         private readonly string _topicHostname;
+        private readonly object _syncroot = new object();
 
-        private ManualResetEventSlim _canAdd = new ManualResetEventSlim(true);
+        private IList<EventGridEvent> _eventsToSend = new List<EventGridEvent>();
 
         public EventGridAsyncCollector(IEventGridClient client, string topicEndpointUri)
         {
@@ -25,28 +25,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
-            _canAdd.Wait(); // spinlock while flushing takes place; avoid modifying collection during the Publish() operation
-
-            _eventsToSend.Add(item);
+            lock (_syncroot)
+            {   // Don't let FlushAsyc take place while we're doing this
+                _eventsToSend.Add(item);
+            }
 
             return Task.CompletedTask;
         }
 
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            try
-            {
-                _canAdd.Reset();
-
-                if (_eventsToSend.Any())
-                {
-                    await _client.PublishEventsAsync(_topicHostname, _eventsToSend, cancellationToken);
-                    _eventsToSend.Clear();
-                }
+            IList<EventGridEvent> events;
+            lock (_syncroot)
+            {   // pull out events to send, reset the list. Don't let AddAsync take place while we do this
+                events = _eventsToSend;
+                _eventsToSend = new List<EventGridEvent>();
             }
-            finally
+
+            if (events.Any())
             {
-                _canAdd.Set();
+                await _client.PublishEventsAsync(_topicHostname, events, cancellationToken);
             }
         }
     }
