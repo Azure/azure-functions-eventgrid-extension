@@ -27,7 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         private readonly Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> _converter;
 
         // for end to end testing
-        public EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
+        internal EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
         {
             _converter = converter;
         }
