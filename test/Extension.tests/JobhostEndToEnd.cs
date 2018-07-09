@@ -122,7 +122,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
             indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
-            Assert.Equal($"The'{nameof(EventGridAttribute.SasKeySetting)}' property must be a valid sas token", indexException.InnerException.Message);
+            Assert.Equal($"The'{nameof(EventGridAttribute.TopicKeySetting)}' property must be a valid sas token", indexException.InnerException.Message);
         }
 
 
@@ -269,12 +269,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class OutputBindingParams
         {
-            [return: EventGrid(TopicEndpointUri = "eventgridUri", SasKeySetting = "eventgridKey")]
+            [return: EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")]
             public EventGridEvent TestOutputTypes(
-                [EventGrid(TopicEndpointUri = "eventgridUri", SasKeySetting = "eventgridKey")] out EventGridEvent single,
-                [EventGrid(TopicEndpointUri = "eventgridUri", SasKeySetting = "eventgridKey")] out EventGridEvent[] array,
-                [EventGrid(TopicEndpointUri = "eventgridUri", SasKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector,
-                [EventGrid(TopicEndpointUri = "eventgridUri", SasKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent single,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent[] array,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
             {
                 // does not actually send, custruct simplest event possible
                 single = new EventGridEvent()
