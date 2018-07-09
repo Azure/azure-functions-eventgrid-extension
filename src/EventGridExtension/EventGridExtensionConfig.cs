@@ -35,7 +35,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         // default constructor
         public EventGridExtensionConfig()
         {
-            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.SasKey)), attr.TopicEndpointUri));
+            _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.SasKeySetting)), attr.TopicEndpointUri));
         }
 
         public void Initialize(ExtensionConfigContext context)
@@ -69,9 +69,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             {
                 // if app setting is missing, it will be caught by runtime
                 // this logic tries to validate the practicality of attribute properties
-                if (string.IsNullOrWhiteSpace(a.SasKey))
+                if (string.IsNullOrWhiteSpace(a.SasKeySetting))
                 {
-                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.SasKey)}' property must be a valid sas token");
+                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.SasKeySetting)}' property must be a valid sas token");
                 }
 
                 if (!Uri.IsWellFormedUriString(a.TopicEndpointUri, UriKind.Absolute))

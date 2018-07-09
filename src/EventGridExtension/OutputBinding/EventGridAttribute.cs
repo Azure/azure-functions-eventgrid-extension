@@ -18,6 +18,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         /// <summary>Gets or sets the sas key setting.</summary>
         [AppSetting]
-        public string SasKey { get; set; }
+        public string SasKeySetting { get; set; }
     }
 }
