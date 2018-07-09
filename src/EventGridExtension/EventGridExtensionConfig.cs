@@ -68,7 +68,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 // this logic tries to validate the practicality of attribute properties
                 if (string.IsNullOrWhiteSpace(a.SasKey))
                 {
-                    throw new InvalidOperationException($"The'{nameof(EventGridAttribute.SasKey)}' property must be a valid sas token");
+                    throw new InvalidOperationException($"The '{nameof(EventGridAttribute.SasKey)}' property must be a valid sas token");
                 }
 
                 if (!Uri.IsWellFormedUriString(a.TopicEndpointUri, UriKind.Absolute))
