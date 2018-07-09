@@ -26,7 +26,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (_syncroot)
-            {   // Don't let FlushAsyc take place while we're doing this
+            {
+                // Don't let FlushAsyc take place while we're doing this
                 _eventsToSend.Add(item);
             }
 
@@ -37,7 +38,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         {
             IList<EventGridEvent> events;
             lock (_syncroot)
-            {   // pull out events to send, reset the list. Don't let AddAsync take place while we do this
+            {
+                // pull out events to send, reset the list. Don't let AddAsync take place while we do this
                 events = _eventsToSend;
                 _eventsToSend = new List<EventGridEvent>();
             }
