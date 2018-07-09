@@ -164,12 +164,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             matches.Add("arrayEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
             matches.Add("collectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
             matches.Add("asyncCollectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
+            matches.Add("singleStringEvent", new HashSet<int>(new int[] { 0 }));
+            matches.Add("arrayStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
+            matches.Add("collectorStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
+            matches.Add("asyncCollectorStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
+            matches.Add("singleJobjectEvent", new HashSet<int>(new int[] { 0 }));
+            matches.Add("arrayJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
+            matches.Add("collectorJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
+            matches.Add("asyncCollectorJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
 
             foreach (EventGridEvent eve in output)
             {
                 HashSet<int> set;
                 Assert.True(matches.TryGetValue(eve.EventType, out set));
-                Assert.True(set.Remove((int)eve.Data));
+                Assert.True(set.Remove(Convert.ToInt32(eve.Data)));
             }
 
             Assert.True(matches.Values.All(s => s.Count == 0));
@@ -274,7 +282,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent single,
                 [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent[] array,
                 [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string singleString,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string[] arraystring,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<string> collectorstring,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<string> asyncCollectorstring,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject singleJObject,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject[] arrayJObject,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<JObject> collectorJObject,
+                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<JObject> asyncCollectorJObject)
             {
                 // does not actually send, custruct simplest event possible
                 single = new EventGridEvent()
@@ -309,6 +325,68 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                         EventType = "asyncCollectorEvent",
                         Data = i
                     }).Wait();
+                    if (i % 3 == 0)
+                    {
+                        // flush mulitple times, test whether the internal buffer is cleared
+                        asyncCollector.FlushAsync().Wait();
+                    }
+                }
+
+                singleString = @"
+                {
+                    ""EventType"" : ""singleStringEvent"",
+                    ""Data"" : 0
+                }";
+
+                arraystring = new string[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    arraystring[i] = $@"
+                    {{
+                        ""EventType"" : ""arrayStringEvent"",
+                        ""Data"" : {i}
+                    }}";
+                }
+
+                for (int i = 0; i < 4; i++)
+                {
+                    collectorstring.Add($@"
+                    {{
+                        ""EventType"" : ""collectorStringEvent"",
+                        ""Data"" : {i}
+                    }}");
+                }
+
+                for (int i = 0; i < 7; i++)
+                {
+                    asyncCollectorstring.AddAsync($@"
+                    {{
+                        ""EventType"" : ""asyncCollectorStringEvent"",
+                        ""Data"" : {i}
+                    }}").Wait();
+                    if (i % 3 == 0)
+                    {
+                        // flush mulitple times, test whether the internal buffer is cleared
+                        asyncCollector.FlushAsync().Wait();
+                    }
+                }
+
+                singleJObject = new JObject(new JProperty("EventType", "singleJobjectEvent"), new JProperty("Data", 0));
+
+                arrayJObject = new JObject[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    arrayJObject[i] = new JObject(new JProperty("EventType", "arrayJobjectEvent"), new JProperty("Data", i));
+                }
+
+                for (int i = 0; i < 4; i++)
+                {
+                    collectorJObject.Add(new JObject(new JProperty("EventType", "collectorJobjectEvent"), new JProperty("Data", i)));
+                }
+
+                for (int i = 0; i < 7; i++)
+                {
+                    asyncCollectorJObject.AddAsync(new JObject(new JProperty("EventType", "asyncCollectorJobjectEvent"), new JProperty("Data", i))).Wait();
                     if (i % 3 == 0)
                     {
                         // flush mulitple times, test whether the internal buffer is cleared

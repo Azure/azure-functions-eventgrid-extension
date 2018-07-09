@@ -63,7 +63,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             // Register the output binding
             var rule = context
-                .AddBindingRule<EventGridAttribute>();
+                .AddBindingRule<EventGridAttribute>()
+                .AddConverter<string, JObject>((str) => JObject.Parse(str)) // used for direct invocation
+                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
+                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>));
             rule.BindToCollector(_converter);
             rule.AddValidator((a, t) =>
             {
