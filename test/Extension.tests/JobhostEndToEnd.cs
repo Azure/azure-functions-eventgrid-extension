@@ -122,7 +122,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
             indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
-            Assert.Equal($"The'{nameof(EventGridAttribute.TopicKeySetting)}' property must be a valid sas token", indexException.InnerException.Message);
+            Assert.Equal($"The '{nameof(EventGridAttribute.TopicKeySetting)}' property must be the name of an application setting containing the Topic Key", indexException.InnerException.Message);
         }
 
 
