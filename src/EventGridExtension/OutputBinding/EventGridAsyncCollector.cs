@@ -11,7 +11,7 @@ using Microsoft.Azure.EventGrid.Models;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public sealed class EventGridAsyncCollector : IAsyncCollector<EventGridEvent>
+    internal sealed class EventGridAsyncCollector : IAsyncCollector<EventGridEvent>
     {
         // use IEventGridClient for mocking test
         private readonly IEventGridClient _client;
