@@ -40,11 +40,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             IList<EventGridEvent> events;
+            var newEventList = new List<EventGridEvent>();
             lock (_syncroot)
             {
-                // pull out events to send, reset the list. Don't let AddAsync take place while we do this
+                // swap the events to send out with a new list; locking so 'AddAsync' doesn't take place while we do this
                 events = _eventsToSend;
-                _eventsToSend = new List<EventGridEvent>();
+                _eventsToSend = newEventList;
             }
 
             if (events.Any())
