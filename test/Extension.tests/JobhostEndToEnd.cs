@@ -126,8 +126,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
 
-        [Fact]
-        public async Task OutputBindingTests()
+        [Theory]
+        [InlineData("SingleEvent", "0")]
+        [InlineData("SingleReturnEvent", "0")]
+        // space sperated string as event ids
+        [InlineData("ArrayEvent", "0 1 2 3 4")]
+        [InlineData("CollectorEvent", "0 1 2 3")]
+        [InlineData("AsyncCollectorEvent", "0 1 2 3 4 5 6")]
+        [InlineData("StringEvents", "0 1 2 3 4")]
+        [InlineData("JObjectEvents", "0 1 2 3 4")]
+        public async Task OutputBindingParamsTests(string functionName, string expectedCollection)
         {
             List<EventGridEvent> output = new List<EventGridEvent>();
 
@@ -154,33 +162,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, nameResolverMock.Object);
 
-            await host.CallAsync("OutputBindingParams.TestOutputTypes");
+            await host.CallAsync($"OutputBindingParams.{functionName}");
 
-            // verify that for each output type, events were "sent" correctly
-            Dictionary<string, HashSet<int>> matches = new Dictionary<string, HashSet<int>>();
-            // initialize match
-            matches.Add("singleEvent", new HashSet<int>(new int[] { 0 }));
-            matches.Add("singleReturnEvent", new HashSet<int>(new int[] { 0 }));
-            matches.Add("arrayEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
-            matches.Add("collectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
-            matches.Add("asyncCollectorEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
-            matches.Add("singleStringEvent", new HashSet<int>(new int[] { 0 }));
-            matches.Add("arrayStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
-            matches.Add("collectorStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
-            matches.Add("asyncCollectorStringEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
-            matches.Add("singleJobjectEvent", new HashSet<int>(new int[] { 0 }));
-            matches.Add("arrayJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4 }));
-            matches.Add("collectorJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3 }));
-            matches.Add("asyncCollectorJobjectEvent", new HashSet<int>(new int[] { 0, 1, 2, 3, 4, 5, 6 }));
-
+            var expectedEvents = new HashSet<string>(expectedCollection.Split(' '));
             foreach (EventGridEvent eve in output)
             {
-                HashSet<int> set;
-                Assert.True(matches.TryGetValue(eve.EventType, out set));
-                Assert.True(set.Remove(Convert.ToInt32(eve.Data)));
+                Assert.True(expectedEvents.Remove((string)eve.Data));
             }
-
-            Assert.True(matches.Values.All(s => s.Count == 0));
+            Assert.True(expectedEvents.Count == 0);
         }
 
         public class EventGridParams
@@ -277,128 +266,84 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
         public class OutputBindingParams
         {
-            [return: EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")]
-            public EventGridEvent TestOutputTypes(
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent single,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent[] array,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string singleString,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string[] arraystring,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<string> collectorstring,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<string> asyncCollectorstring,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject singleJObject,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject[] arrayJObject,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<JObject> collectorJObject,
-                [EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<JObject> asyncCollectorJObject)
+            public void SingleEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent single)
             {
-                // does not actually send, custruct simplest event possible
                 single = new EventGridEvent()
                 {
-                    EventType = "singleEvent",
-                    Data = 0
+                    Data = "0"
                 };
+            }
 
+            [return: EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")]
+            public EventGridEvent SingleReturnEvent()
+            {
+                return new EventGridEvent()
+                {
+                    Data = "0"
+                };
+            }
+
+            public void ArrayEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out EventGridEvent[] array)
+            {
                 array = new EventGridEvent[5];
                 for (int i = 0; i < 5; i++)
                 {
                     array[i] = new EventGridEvent()
                     {
-                        EventType = "arrayEvent",
-                        Data = i
+                        Data = i.ToString()
                     };
                 }
+            }
 
+            public void CollectorEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] ICollector<EventGridEvent> collector)
+            {
                 for (int i = 0; i < 4; i++)
                 {
                     collector.Add(new EventGridEvent()
                     {
-                        EventType = "collectorEvent",
-                        Data = i
+                        Data = i.ToString()
                     });
                 }
+            }
 
+            public async Task AsyncCollectorEvent([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] IAsyncCollector<EventGridEvent> asyncCollector)
+            {
                 for (int i = 0; i < 7; i++)
                 {
-                    asyncCollector.AddAsync(new EventGridEvent()
+                    await asyncCollector.AddAsync(new EventGridEvent()
                     {
-                        EventType = "asyncCollectorEvent",
-                        Data = i
-                    }).Wait();
+                        Data = i.ToString()
+                    });
+
                     if (i % 3 == 0)
                     {
                         // flush mulitple times, test whether the internal buffer is cleared
-                        asyncCollector.FlushAsync().Wait();
+                        await asyncCollector.FlushAsync();
                     }
                 }
+            }
 
-                singleString = @"
-                {
-                    ""EventType"" : ""singleStringEvent"",
-                    ""Data"" : 0
-                }";
-
-                arraystring = new string[5];
+            // assume converter is applied correctly with other output binding types
+            public void StringEvents([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out string[] strings)
+            {
+                strings = new string[5];
                 for (int i = 0; i < 5; i++)
                 {
-                    arraystring[i] = $@"
+                    strings[i] = $@"
                     {{
-                        ""EventType"" : ""arrayStringEvent"",
-                        ""Data"" : {i}
+                        ""Data"" : ""{i}""
                     }}";
                 }
+            }
 
-                for (int i = 0; i < 4; i++)
-                {
-                    collectorstring.Add($@"
-                    {{
-                        ""EventType"" : ""collectorStringEvent"",
-                        ""Data"" : {i}
-                    }}");
-                }
-
-                for (int i = 0; i < 7; i++)
-                {
-                    asyncCollectorstring.AddAsync($@"
-                    {{
-                        ""EventType"" : ""asyncCollectorStringEvent"",
-                        ""Data"" : {i}
-                    }}").Wait();
-                    if (i % 3 == 0)
-                    {
-                        // flush mulitple times, test whether the internal buffer is cleared
-                        asyncCollector.FlushAsync().Wait();
-                    }
-                }
-
-                singleJObject = new JObject(new JProperty("EventType", "singleJobjectEvent"), new JProperty("Data", 0));
-
-                arrayJObject = new JObject[5];
+            // assume converter is applied correctly with other output binding types
+            public void JObjectEvents([EventGrid(TopicEndpointUri = "eventgridUri", TopicKeySetting = "eventgridKey")] out JObject[] jobjects)
+            {
+                jobjects = new JObject[5];
                 for (int i = 0; i < 5; i++)
                 {
-                    arrayJObject[i] = new JObject(new JProperty("EventType", "arrayJobjectEvent"), new JProperty("Data", i));
+                    jobjects[i] = new JObject(new JProperty("Data", i.ToString()));
                 }
-
-                for (int i = 0; i < 4; i++)
-                {
-                    collectorJObject.Add(new JObject(new JProperty("EventType", "collectorJobjectEvent"), new JProperty("Data", i)));
-                }
-
-                for (int i = 0; i < 7; i++)
-                {
-                    asyncCollectorJObject.AddAsync(new JObject(new JProperty("EventType", "asyncCollectorJobjectEvent"), new JProperty("Data", i))).Wait();
-                    if (i % 3 == 0)
-                    {
-                        // flush mulitple times, test whether the internal buffer is cleared
-                        asyncCollector.FlushAsync().Wait();
-                    }
-                }
-
-                return new EventGridEvent()
-                {
-                    EventType = "singleReturnEvent",
-                    Data = 0
-                };
             }
         }
     }
