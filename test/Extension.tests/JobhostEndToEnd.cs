@@ -31,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 { "value", eve }
             };
 
-            var expectOut = (string)eve["subject"];
+            var expectOut = (string)(eve["data"]["fileUrl"]);
 
             var host = TestHelpers.NewHost<EventGridParams>();
 
@@ -178,17 +178,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             public void TestEventGridToString([EventGridTrigger] string value)
             {
-                _functionOut = (string)JObject.Parse(value)["subject"];
+                _functionOut = (string)(JObject.Parse(value)["data"]["fileUrl"]);
             }
 
             public void TestEventGridToJObject([EventGridTrigger] JObject value)
             {
-                _functionOut = (string)value["subject"];
+                _functionOut = (string)(value["data"]["fileUrl"]);
             }
 
             public void TestEventGridToNuget([EventGridTrigger] EventGridEvent value)
             {
-                _functionOut = value.Subject;
+                if (value.Data is EventHubCaptureFileCreatedEventData)
+                {
+                    _functionOut = ((EventHubCaptureFileCreatedEventData)value.Data).Fileurl;
+                }
             }
 
             public void TestEventGridToCustom([EventGridTrigger] Poco value)
