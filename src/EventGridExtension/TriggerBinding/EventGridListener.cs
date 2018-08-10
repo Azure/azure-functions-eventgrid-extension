@@ -7,14 +7,14 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public class EventGridListener : Host.Listeners.IListener
+    internal class EventGridListener : Host.Listeners.IListener
     {
         public ITriggeredFunctionExecutor Executor { private set; get; }
 
-        private EventGridExtensionConfig _listenersStore;
+        private EventGridExtensionConfigProvider _listenersStore;
         private readonly string _functionName;
 
-        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfig listenersStore, string functionName)
+        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfigProvider listenersStore, string functionName)
         {
             _listenersStore = listenersStore;
             _functionName = functionName;

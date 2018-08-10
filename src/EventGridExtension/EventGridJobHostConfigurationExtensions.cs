@@ -1,22 +1,32 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using Microsoft.Azure.WebJobs.Host.Bindings;
+using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public static class EventGridJobHostConfigurationExtensions
+    /// <summary>
+    /// Extension methods for EventGrid integration
+    /// </summary>
+    public static class EventGridWebJobsBuilderExtensions
     {
-        public static void UseEventGrid(this JobHostConfiguration config)
+
+        /// <summary>
+        /// Adds the EventGrid extension to the provided <see cref="IWebJobsBuilder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="IWebJobsBuilder"/> to configure.</param>
+        public static IWebJobsBuilder AddEventGrid(this IWebJobsBuilder builder)
         {
-            if (config == null)
+            if (builder == null)
             {
-                throw new ArgumentNullException("config");
+                throw new ArgumentNullException(nameof(builder));
             }
 
-            // Register our extension configuration provider
-            // done by the function runtime
-            config.RegisterExtensionConfigProvider(new EventGridExtensionConfig());
+            builder.AddExtension<EventGridExtensionConfigProvider>();
+            return builder;
         }
     }
 }

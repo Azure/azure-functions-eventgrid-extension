@@ -16,8 +16,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     internal class EventGridTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
-        private readonly EventGridExtensionConfig _extensionConfigProvider;
-        internal EventGridTriggerAttributeBindingProvider(EventGridExtensionConfig extensionConfigProvider)
+        private readonly EventGridExtensionConfigProvider _extensionConfigProvider;
+        internal EventGridTriggerAttributeBindingProvider(EventGridExtensionConfigProvider extensionConfigProvider)
         {
             _extensionConfigProvider = extensionConfigProvider;
         }
@@ -45,9 +45,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         {
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
-            private readonly EventGridExtensionConfig _listenersStore;
+            private readonly EventGridExtensionConfigProvider _listenersStore;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfigProvider listenersStore)
             {
                 _listenersStore = listenersStore;
                 _parameter = parameter;

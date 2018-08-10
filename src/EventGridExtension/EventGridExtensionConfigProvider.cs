@@ -11,31 +11,40 @@ using System.Threading.Tasks;
 using System.Web;
 using Microsoft.Azure.EventGrid;
 using Microsoft.Azure.EventGrid.Models;
+using Microsoft.Azure.WebJobs.Description;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Microsoft.Azure.WebJobs.Host.Executors;
+using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public class EventGridExtensionConfig : IExtensionConfigProvider,
+    /// <summary>
+    /// Defines the configuration options for the SendGrid binding.
+    /// </summary>
+    [Extension("EventGrid")]
+    internal class EventGridExtensionConfigProvider : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         private ILogger _logger;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> _converter;
 
         // for end to end testing
-        internal EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
+        internal EventGridExtensionConfigProvider(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter, ILoggerFactory loggerFactory)
         {
             _converter = converter;
+            _loggerFactory = loggerFactory;
         }
 
         // default constructor
-        public EventGridExtensionConfig()
+        public EventGridExtensionConfigProvider(ILoggerFactory loggerFactory)
         {
             _converter = (attr => new EventGridAsyncCollector(new EventGridClient(new TopicCredentials(attr.TopicKeySetting)), attr.TopicEndpointUri));
+            _loggerFactory = loggerFactory;
         }
 
         public void Initialize(ExtensionConfigContext context)
@@ -45,7 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 throw new ArgumentNullException("context");
             }
 
-            _logger = context.Config.LoggerFactory.CreateLogger<EventGridExtensionConfig>();
+            _logger = _loggerFactory.CreateLogger(LogCategories.CreateTriggerCategory("EventGrid"));
 
             Uri url = context.GetWebhookHandler();
             _logger.LogInformation($"registered EventGrid Endpoint = {url?.GetLeftPart(UriPartial.Path)}");

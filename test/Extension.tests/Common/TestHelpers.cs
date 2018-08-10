@@ -1,23 +1,45 @@
 ﻿using System;
+using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Azure.WebJobs.Host.Config;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
-    public class TestHelpers
+    internal static class TestHelpers
     {
-        public static JobHost NewHost<T>(EventGridExtensionConfig ext = null, INameResolver nameResolver = null)
+        public static IHost NewHost<T>(EventGridExtensionConfigProvider ext = null, INameResolver nameResolver = null)
         {
-            JobHostConfiguration config = new JobHostConfiguration();
-            config.HostId = Guid.NewGuid().ToString("n");
-            config.StorageConnectionString = null;
-            config.DashboardConnectionString = null;
-            config.TypeLocator = new FakeTypeLocator<T>();
-            config.AddExtension(ext ?? new EventGridExtensionConfig());
-            config.AddExtension(new TestExtensionConfig());
-            config.LoggerFactory = new LoggerFactory();
-            config.NameResolver = nameResolver ?? new DefaultNameResolver();
-            var host = new JobHost(config);
+            IHost host = new HostBuilder()
+           .ConfigureServices(services =>
+           {
+               services.AddSingleton(nameResolver ?? new DefaultNameResolver());
+               services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
+               if (ext != null)
+               {
+                   services.AddSingleton<IExtensionConfigProvider>(ext);
+               }
+               services.AddSingleton<IExtensionConfigProvider>(new TestExtensionConfig());
+           })
+           .ConfigureWebJobs(builder =>
+           {
+               builder.AddEventGrid();
+               builder.UseHostId(Guid.NewGuid().ToString("n"));
+           })
+           .ConfigureLogging(logging =>
+           {
+               logging.ClearProviders();
+               logging.AddProvider(new TestLoggerProvider());
+           })
+           .Build();
+
             return host;
+        }
+
+        public static JobHost GetJobHost(this IHost host)
+        {
+            return host.Services.GetService<IJobHost>() as JobHost;
         }
     }
 }
