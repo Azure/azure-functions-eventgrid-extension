@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    class EventGridWebJobsStartup : IWebJobsStartup
+    public class EventGridWebJobsStartup : IWebJobsStartup
     {
         public void Configure(IWebJobsBuilder builder)
         {

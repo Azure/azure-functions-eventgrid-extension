@@ -23,7 +23,7 @@ using Newtonsoft.Json.Linq;
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     /// <summary>
-    /// Defines the configuration options for the SendGrid binding.
+    /// Defines the configuration options for the EventGrid binding.
     /// </summary>
     [Extension("EventGrid")]
     internal class EventGridExtensionConfigProvider : IExtensionConfigProvider,
