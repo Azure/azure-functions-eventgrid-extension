@@ -5,6 +5,8 @@ using Microsoft.Azure.WebJobs.Extensions.EventGrid;
 using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Extensions.Hosting;
 
+[assembly: WebJobsStartup(typeof(EventGridWebJobsStartup))]
+
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     class EventGridWebJobsStartup : IWebJobsStartup
