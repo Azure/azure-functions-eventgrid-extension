@@ -25,6 +25,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     {
         private ILogger _logger;
         private readonly Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> _converter;
+        private readonly EventGridSubscriber eventGridSubscriber = new EventGridSubscriber();
 
         // for end to end testing
         internal EventGridExtensionConfig(Func<EventGridAttribute, IAsyncCollector<EventGridEvent>> converter)
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .AddBindingRule<EventGridTriggerAttribute>() // following converters are for EventGridTriggerAttribute only
                 .AddConverter<JObject, string>((jobject) => jobject.ToString(Formatting.Indented))
                 .AddConverter<string, JObject>((str) => JObject.Parse(str)) // used for direct invocation
-                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
+                .AddConverter<JObject, EventGridEvent>(ToEventGridEventConverter) // surface the type to function runtime
                 .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
                 .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
 
@@ -173,12 +174,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             }
             else if (String.Equals(eventTypeHeader, "Unsubscribe", StringComparison.OrdinalIgnoreCase))
             {
-                // TODO disable function?
+                // TODO at least, log unsub information
                 return new HttpResponseMessage(HttpStatusCode.Accepted);
             }
 
             return new HttpResponseMessage(HttpStatusCode.BadRequest);
 
+        }
+
+        private EventGridEvent ToEventGridEventConverter(JObject jobject)
+        {
+            // FIXME, too many redirection
+            var stringEvents = new JArray(jobject).ToString();
+            var serializedevents = eventGridSubscriber.DeserializeEventGridEvents(stringEvents);
+            return serializedevents[0];
         }
 
         private class JObjectToPocoConverter<T> : IConverter<JObject, T>

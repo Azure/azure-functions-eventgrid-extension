@@ -6,7 +6,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string eventGridEvents = @"[{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': {
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string eventGridEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': {
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string stringDataEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': 'goodBye world',
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string arrayDataEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': ['ConfusedDev', 123, true],
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string primitiveDataEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'data': 123,
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
         public const string missingDataEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',
-  'eventType': 'captureFileCreated',
+  'eventType': 'Microsoft.EventHub.CaptureFileCreated',
   'eventTime': '2017-07-14T23:10:27.7689666Z',
   'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
   'dataVersion': '',
