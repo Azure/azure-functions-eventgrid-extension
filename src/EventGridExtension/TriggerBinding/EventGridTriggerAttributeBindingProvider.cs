@@ -16,8 +16,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
     internal class EventGridTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
-        private readonly EventGridExtensionConfig _extensionConfigProvider;
-        internal EventGridTriggerAttributeBindingProvider(EventGridExtensionConfig extensionConfigProvider)
+        private readonly EventGridExtensionConfigProvider _extensionConfigProvider;
+        internal EventGridTriggerAttributeBindingProvider(EventGridExtensionConfigProvider extensionConfigProvider)
         {
             _extensionConfigProvider = extensionConfigProvider;
         }
@@ -45,11 +45,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         {
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
-            private readonly EventGridExtensionConfig _listenersStore;
+            private readonly EventGridExtensionConfigProvider _eventGridExtensionConfigProvider;
 
-            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfig listenersStore)
+            public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfigProvider eventGridExtensionConfigProvider)
             {
-                _listenersStore = listenersStore;
+                _eventGridExtensionConfigProvider = eventGridExtensionConfigProvider;
                 _parameter = parameter;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 // for csharp function, shortName == functionNameAttribute.Name
                 // for csharpscript function, shortName == Functions.FolderName (need to strip the first half)
                 string functionName = context.Descriptor.ShortName.Split('.').Last();
-                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _listenersStore, functionName));
+                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _eventGridExtensionConfigProvider, functionName));
             }
 
             public ParameterDescriptor ToParameterDescriptor()

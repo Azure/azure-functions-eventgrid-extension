@@ -7,23 +7,23 @@ using Microsoft.Azure.WebJobs.Host.Executors;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 {
-    public class EventGridListener : Host.Listeners.IListener
+    internal class EventGridListener : Host.Listeners.IListener
     {
         public ITriggeredFunctionExecutor Executor { private set; get; }
 
-        private EventGridExtensionConfig _listenersStore;
+        private EventGridExtensionConfigProvider _extensionConfigProvider;
         private readonly string _functionName;
 
-        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfig listenersStore, string functionName)
+        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfigProvider listenersStore, string functionName)
         {
-            _listenersStore = listenersStore;
+            _extensionConfigProvider = listenersStore;
             _functionName = functionName;
             Executor = executor;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _listenersStore.AddListener(_functionName, this);
+            _extensionConfigProvider.AddListener(_functionName, this);
             return Task.FromResult(true);
         }
 

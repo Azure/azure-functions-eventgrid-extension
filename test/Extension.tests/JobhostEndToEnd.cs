@@ -8,6 +8,7 @@ using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Indexers;
+using Microsoft.Extensions.Logging;
 using Microsoft.Rest.Azure;
 using Moq;
 using Newtonsoft.Json.Linq;
@@ -35,7 +36,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<EventGridParams>();
 
-            await host.CallAsync(functionName, args);
+            await host.GetJobHost().CallAsync(functionName, args);
             Assert.Equal(_functionOut, expectOut);
             _functionOut = null;
         }
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<EventGridParams>();
 
             // when invoked
-            var invocationException = await Assert.ThrowsAsync<FunctionInvocationException>(() => host.CallAsync("EventGridParams.TestEventGridToCustom", args));
+            var invocationException = await Assert.ThrowsAsync<FunctionInvocationException>(() => host.GetJobHost().CallAsync("EventGridParams.TestEventGridToCustom", args));
             Assert.Equal(@"Exception binding parameter 'value'", invocationException.InnerException.Message);
 
             // when indexed
@@ -74,7 +75,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<CloudEventParams>();
 
-            await host.CallAsync(functionName, args);
+            await host.StartAsync();
+            await host.GetJobHost().CallAsync(functionName, args);
             Assert.Equal(_functionOut, expectOut);
             _functionOut = null;
         }
@@ -93,7 +95,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 { "value", JObject.Parse((string)typeof(FakeData).GetField(argument).GetValue(null)) }
             };
 
-            await host.CallAsync(functionName, args);
+            await host.GetJobHost().CallAsync(functionName, args);
             Assert.Equal(expectedOutput, _functionOut);
             _functionOut = null;
         }
@@ -153,8 +155,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                       });
                 return new EventGridAsyncCollector(mockClient.Object, attr.TopicEndpointUri);
             });
+
+            ILoggerFactory loggerFactory = new LoggerFactory();
+            loggerFactory.AddProvider(new TestLoggerProvider());
             // use moq eventgridclient for test extension
-            var customExtension = new EventGridExtensionConfig(customConverter);
+            var customExtension = new EventGridExtensionConfigProvider(customConverter, loggerFactory);
 
             var nameResolverMock = new Mock<INameResolver>();
             nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
@@ -162,7 +167,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 
             var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, nameResolverMock.Object);
 
-            await host.CallAsync($"OutputBindingParams.{functionName}");
+            await host.GetJobHost().CallAsync($"OutputBindingParams.{functionName}");
 
             var expectedEvents = new HashSet<string>(expectedCollection.Split(' '));
             foreach (EventGridEvent eve in output)
