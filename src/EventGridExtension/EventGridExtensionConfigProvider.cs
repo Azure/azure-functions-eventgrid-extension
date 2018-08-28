@@ -25,7 +25,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     /// <summary>
     /// Defines the configuration options for the EventGrid binding.
     /// </summary>
-    [Extension("EventGrid")]
+    [Extension("EventGrid", "EventGrid")]
     internal class EventGridExtensionConfigProvider : IExtensionConfigProvider,
                        IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
