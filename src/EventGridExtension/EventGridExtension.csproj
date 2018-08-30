@@ -3,7 +3,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Microsoft.Azure.WebJobs.Extensions.EventGrid</PackageId>
     <Description>This extension adds bindings for EventGrid</Description>
-    <Version>2.0.0-beta3$(VersionSuffix)</Version>
+    <Version>2.0.0-beta4$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
     <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EventGrid</AssemblyName>
@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetFramework)=='netstandard2.0'">
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta7-11418" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta8" />
   </ItemGroup>
 
   <ItemGroup>
