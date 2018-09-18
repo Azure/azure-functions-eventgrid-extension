@@ -4,17 +4,18 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Azure.WebJobs.Host.Config;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 
 namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
 {
     internal static class TestHelpers
     {
-        public static IHost NewHost<T>(EventGridExtensionConfigProvider ext = null, INameResolver nameResolver = null)
+        public static IHost NewHost<T>(EventGridExtensionConfigProvider ext = null, Dictionary<string, string> configuration = null)
         {
-            IHost host = new HostBuilder()
+            var builder = new HostBuilder()
            .ConfigureServices(services =>
            {
-               services.AddSingleton(nameResolver ?? new DefaultNameResolver());
                services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
                if (ext != null)
                {
@@ -22,19 +23,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                }
                services.AddSingleton<IExtensionConfigProvider>(new TestExtensionConfig());
            })
-           .ConfigureWebJobs(builder =>
+           .ConfigureWebJobs(webJobsBuilder =>
            {
-               builder.AddEventGrid();
-               builder.UseHostId(Guid.NewGuid().ToString("n"));
+               webJobsBuilder.AddEventGrid();
+               webJobsBuilder.UseHostId(Guid.NewGuid().ToString("n"));
            })
            .ConfigureLogging(logging =>
            {
                logging.ClearProviders();
                logging.AddProvider(new TestLoggerProvider());
-           })
-           .Build();
+           });
 
-            return host;
+            if (configuration != null)
+            {
+                builder.ConfigureAppConfiguration(b =>
+                {
+                    b.AddInMemoryCollection(configuration);
+                });
+            }
+
+            return builder.Build();
         }
 
         public static JobHost GetJobHost(this IHost host)

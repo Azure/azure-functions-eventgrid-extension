@@ -8,6 +8,7 @@ using Microsoft.Azure.EventGrid.Models;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Indexers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Rest.Azure;
 using Moq;
@@ -107,22 +108,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<OutputBindingParams>();
             // appsetting is missing
             var indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
-            Assert.Equal($"Unable to resolve app setting for property '{nameof(EventGridAttribute)}.{nameof(EventGridAttribute.TopicEndpointUri)}'. Make sure the app setting exists and has a valid value.", indexException.InnerException.Message);
+            Assert.Equal($"Unable to resolve the value for property '{nameof(EventGridAttribute)}.{nameof(EventGridAttribute.TopicEndpointUri)}'. Make sure the setting exists and has a valid value.", indexException.InnerException.Message);
 
-            var nameResolverMock = new Mock<INameResolver>();
-            // invalid uri
-            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("this could be anything...so lets try yolo");
-            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+            var configuration = new Dictionary<string, string>
+                {
+                    { "eventGridUri" , "this could be anything...so lets try yolo" },
+                    { "eventgridKey" , "thisismagic" }
+                };
 
-            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            host = TestHelpers.NewHost<OutputBindingParams>(configuration: configuration);
             indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
             Assert.Equal($"The '{nameof(EventGridAttribute.TopicEndpointUri)}' property must be a valid absolute Uri", indexException.InnerException.Message);
 
-            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
-            // invalid sas token
-            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("");
-
-            host = TestHelpers.NewHost<OutputBindingParams>(nameResolver: nameResolverMock.Object);
+            configuration = new Dictionary<string, string>
+                {
+                    { "eventGridUri" , "https://pccode.westus2-1.eventgrid.azure.net/api/events" },
+                    // invalid sas token
+                    { "eventgridKey" , "" }
+                };
+            
+            host = TestHelpers.NewHost<OutputBindingParams>(configuration: configuration);
             indexException = await Assert.ThrowsAsync<FunctionIndexingException>(() => host.StartAsync());
             Assert.Equal($"The '{nameof(EventGridAttribute.TopicKeySetting)}' property must be the name of an application setting containing the Topic Key", indexException.InnerException.Message);
         }
@@ -161,11 +166,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             // use moq eventgridclient for test extension
             var customExtension = new EventGridExtensionConfigProvider(customConverter, loggerFactory);
 
-            var nameResolverMock = new Mock<INameResolver>();
-            nameResolverMock.Setup(x => x.Resolve("eventgridUri")).Returns("https://pccode.westus2-1.eventgrid.azure.net/api/events");
-            nameResolverMock.Setup(x => x.Resolve("eventgridKey")).Returns("thisismagic");
+            var configuration = new Dictionary<string, string>
+                {
+                    { "eventGridUri" , "https://pccode.westus2-1.eventgrid.azure.net/api/events" },
+                    { "eventgridKey" , "thisismagic" }
+                };
 
-            var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, nameResolverMock.Object);
+            var host = TestHelpers.NewHost<OutputBindingParams>(customExtension, configuration: configuration);
 
             await host.GetJobHost().CallAsync($"OutputBindingParams.{functionName}");
 
