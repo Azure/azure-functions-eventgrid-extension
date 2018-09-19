@@ -10,9 +10,9 @@
     <RootNamespace>Microsoft.Azure.WebJobs.Extensions.EventGrid</RootNamespace>
     <Authors>Microsoft</Authors>
     <Company>Microsoft</Company>
-    <Copyright>© .NET Foundation.  All rights reserved.</Copyright>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageLicenseUrl>http://www.microsoft.com/web/webpi/eula/aspnetcomponent_rtw_enu.htm</PackageLicenseUrl>
-    <PackageProjectUrl />
+    <PackageProjectUrl>http://go.microsoft.com/fwlink/?LinkID=320972</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Azure/azure-functions-eventgrid-extension</RepositoryUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
