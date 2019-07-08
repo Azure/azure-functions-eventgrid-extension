@@ -27,7 +27,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         [InlineData("EventGridParams.TestEventGridToNuget")]
         public async Task ConsumeEventGridEventTest(string functionName)
         {
-
             JObject eve = JObject.Parse(FakeData.eventGridEvent);
             var args = new Dictionary<string, object>{
                 { "value", eve }
@@ -38,6 +37,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<EventGridParams>();
 
             await host.GetJobHost().CallAsync(functionName, args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
+        }
+
+        [Fact]
+        public async Task ConsumeMultipleEventGridEventTests()
+        {
+            JArray events = JArray.Parse(FakeData.multipleEventGridEvents);
+            var args = new Dictionary<string, object>
+            {
+                { "value", events as JArray }
+            };
+
+            var expectOut = string.Join(", ", events.Select(ev => ev["subject"]));
+
+            var host = TestHelpers.NewHost<EventGridParams>();
+
+            await host.GetJobHost().CallAsync("TestEventGridToCollection", args);
             Assert.Equal(_functionOut, expectOut);
             _functionOut = null;
         }
@@ -201,6 +218,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             public void TestEventGridToNuget([EventGridTrigger] EventGridEvent value)
             {
                 _functionOut = value.Subject;
+            }
+
+            public void TestEventGridToCollection([EventGridTrigger] EventGridEvent[] value)
+            {
+                _functionOut = string.Join(", ", value.Select(ev => ev.Subject));
             }
 
             public void TestEventGridToCustom([EventGridTrigger] Poco value)
