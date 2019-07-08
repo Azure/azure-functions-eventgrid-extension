@@ -24,6 +24,47 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
   'metadataVersion': '1'
 }]";
 
+        public const string multipleEventGridEvents = @"[{
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
+  'subject': 'eventhubs/test/event1',
+  'eventType': 'captureFileCreated',
+  'eventTime': '2017-07-14T23:10:27.7689666Z',
+  'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
+  'data': {
+    'fileUrl': 'https://trustmethisisarealurl.fake',
+    'fileType': 'AzureBlockBlob',
+    'partitionId': '1',
+    'sizeInBytes': 13,
+    'eventCount': 0,
+    'firstSequenceNumber': -1,
+    'lastSequenceNumber': -1,
+    'firstEnqueueTime': '0001-01-01T00:00:00',
+    'lastEnqueueTime': '0001-01-01T00:00:00'
+  },
+  'dataVersion': '',
+  'metadataVersion': '1'
+},
+{
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
+  'subject': 'eventhubs/test/event2',
+  'eventType': 'captureFileCreated',
+  'eventTime': '2017-07-14T23:10:27.7689666Z',
+  'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
+  'data': {
+    'fileUrl': 'https://nofilehere.file',
+    'fileType': 'AzureBlockBlob',
+    'partitionId': '1',
+    'sizeInBytes': 26,
+    'eventCount': 0,
+    'firstSequenceNumber': -1,
+    'lastSequenceNumber': -1,
+    'firstEnqueueTime': '0001-01-01T00:00:00',
+    'lastEnqueueTime': '0001-01-01T00:00:00'
+  },
+  'dataVersion': '',
+  'metadataVersion': '1'
+}]";
+
         public const string eventGridEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
   'subject': 'eventhubs/test',

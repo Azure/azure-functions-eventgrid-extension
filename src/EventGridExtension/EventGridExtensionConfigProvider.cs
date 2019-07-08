@@ -64,11 +64,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             // also take benefit of identity converter
             context
                 .AddBindingRule<EventGridTriggerAttribute>() // following converters are for EventGridTriggerAttribute only
-                .AddConverter<JObject, string>((jobject) => jobject.ToString(Formatting.Indented))
-                .AddConverter<string, JObject>((str) => JObject.Parse(str)) // used for direct invocation
-                .AddConverter<JObject, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
-                .AddOpenConverter<JObject, OpenType.Poco>(typeof(JObjectToPocoConverter<>))
-                .BindToTrigger<JObject>(new EventGridTriggerAttributeBindingProvider(this));
+                .AddConverter<JToken, string>((jtoken) => jtoken.ToString(Formatting.Indented))
+                .AddConverter<JToken, DirectInvokeString>((jtoken) => new DirectInvokeString(null))
+                .AddConverter<JToken, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
+                .AddConverter<JToken, EventGridEvent[]>((jobject) => jobject.ToObject<EventGridEvent[]>()) // surface the type to function runtime
+                .AddOpenConverter<JToken, OpenType.Poco>(typeof(JTokenToPocoConverter<>))
+                .BindToTrigger<JToken>(new EventGridTriggerAttributeBindingProvider(this));
 
             // Register the output binding
             var rule = context
@@ -157,16 +158,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 }
 
                 List<Task<FunctionResult>> executions = new List<Task<FunctionResult>>();
-                foreach (var ev in events)
+
+                // Single Dispatch
+                if (_listeners[functionName].SingleDispatch)
                 {
-                    // assume each event is a JObject
+                    foreach (var ev in events)
+                    {
+                        // assume each event is a JObject
+                        TriggeredFunctionData triggerData = new TriggeredFunctionData
+                        {
+                            TriggerValue = ev
+                        };
+                        executions.Add(_listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None));
+                    }
+                    await Task.WhenAll(executions);
+                }
+                // Batch Dispatch
+                else
+                {
                     TriggeredFunctionData triggerData = new TriggeredFunctionData
                     {
-                        TriggerValue = ev
+                        TriggerValue = events
                     };
                     executions.Add(_listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None));
                 }
-                await Task.WhenAll(executions);
 
                 // FIXME without internal queuing, we are going to process all events in parallel
                 // and return 500 if there's at least one failure...which will cause EventGrid to resend the entire payload
@@ -190,9 +205,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
         }
 
-        private class JObjectToPocoConverter<T> : IConverter<JObject, T>
+        private class JTokenToPocoConverter<T> : IConverter<JToken, T>
         {
-            public T Convert(JObject input)
+            public T Convert(JToken input)
             {
                 return input.ToObject<T>();
             }

@@ -10,14 +10,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
     internal class EventGridListener : Host.Listeners.IListener
     {
         public ITriggeredFunctionExecutor Executor { private set; get; }
+        public readonly bool SingleDispatch;
 
         private EventGridExtensionConfigProvider _extensionConfigProvider;
         private readonly string _functionName;
 
-        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfigProvider listenersStore, string functionName)
+        public EventGridListener(ITriggeredFunctionExecutor executor, EventGridExtensionConfigProvider listenersStore, string functionName, bool singleDispatch)
         {
             _extensionConfigProvider = listenersStore;
             _functionName = functionName;
+            SingleDispatch = singleDispatch;
             Executor = executor;
         }
 

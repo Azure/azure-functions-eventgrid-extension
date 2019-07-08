@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common;
@@ -16,18 +18,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Fact]
-        public async Task bindAsyncTest()
+        public async Task BindAsyncTest()
         {
             MethodBase methodbase = this.GetType().GetMethod("DummyMethod", BindingFlags.NonPublic | BindingFlags.Instance);
             ParameterInfo[] arrayParam = methodbase.GetParameters();
 
-            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null);
+            ITriggerBinding binding = new EventGridTriggerBinding(arrayParam[0], null, singleDispatch: true);
             JObject eve = JObject.Parse(FakeData.eventGridEvent);
             JObject data = (JObject)eve["data"];
+
+            // Data for batch binding
+            ITriggerBinding bindingBatch = new EventGridTriggerBinding(arrayParam[0], null, singleDispatch: false);
+            JArray events = JArray.Parse(FakeData.multipleEventGridEvents);
+            IEnumerable<JToken> dataEvents = events.Select(ev => ev["data"]);
 
             // JObject as input
             ITriggerData triggerDataWithEvent = await binding.BindAsync(eve, null);
             Assert.Equal(data, triggerDataWithEvent.BindingData["data"]);
+
+            // JArray as input
+            ITriggerData triggerDataWithEvents = await bindingBatch.BindAsync(events, null);
+            Assert.Equal(dataEvents, triggerDataWithEvents.BindingData["data"]);
 
             // string as input
             ITriggerData triggerDataWithString = await binding.BindAsync(FakeData.eventGridEvent, null);
