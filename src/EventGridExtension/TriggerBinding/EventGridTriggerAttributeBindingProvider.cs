@@ -47,16 +47,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
             private readonly ParameterInfo _parameter;
             private readonly Dictionary<string, Type> _bindingContract;
             private readonly EventGridExtensionConfigProvider _eventGridExtensionConfigProvider;
-            private readonly bool _singleDipatch;
+            private readonly bool _singleDispatch;
 
             public EventGridTriggerBinding(ParameterInfo parameter, EventGridExtensionConfigProvider eventGridExtensionConfigProvider, bool singleDispatch)
             {
                 _eventGridExtensionConfigProvider = eventGridExtensionConfigProvider;
                 _parameter = parameter;
-                _singleDipatch = singleDispatch;
+                _singleDispatch = singleDispatch;
                 _bindingContract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "data", typeof(object) }
+                    { "data", _singleDispatch ? typeof(object) : typeof(object[]) }
                 };
             }
 
@@ -67,21 +67,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
             public Type TriggerValueType
             {
-                get { return _singleDipatch ? typeof(JObject) : typeof(JArray); }
+                get { return _singleDispatch ? typeof(JObject) : typeof(JArray); }
             }
 
             // Extract binding data
             // Conversion from value to parameterType is done by GenericCompositeBindingProvider
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
-                if (!_singleDipatch)
+                if (!_singleDispatch)
                 {
                     if (!(value is JArray triggerVals))
                     {
                         throw new InvalidOperationException($"Unable to bind {value} to type {_parameter.ParameterType}. " +
                             $"Expected {nameof(value)} to be of type {typeof(JArray)}");
                     }
-                    var eventDataCollection = triggerVals.Select(ev => ev["data"]);
+                    var eventDataCollection = triggerVals.Select(ev => ev["data"]).ToArray();
                     var bindingDataCollection = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                     {
                         { "data", eventDataCollection }
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 // for csharp function, shortName == functionNameAttribute.Name
                 // for csharpscript function, shortName == Functions.FolderName (need to strip the first half)
                 string functionName = context.Descriptor.ShortName.Split('.').Last();
-                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _eventGridExtensionConfigProvider, functionName, _singleDipatch));
+                return Task.FromResult<IListener>(new EventGridListener(context.Executor, _eventGridExtensionConfigProvider, functionName, _singleDispatch));
             }
 
             public ParameterDescriptor ToParameterDescriptor()

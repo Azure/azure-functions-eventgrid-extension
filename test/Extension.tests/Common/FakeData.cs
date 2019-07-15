@@ -121,6 +121,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests.Common
   'dataVersion': '',
   'metadataVersion': '1'
 }";
+
+        public const string stringDataEvents = @"[{
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
+  'subject': 'eventhubs/test',
+  'eventType': 'captureFileCreated',
+  'eventTime': '2017-07-14T23:10:27.7689666Z',
+  'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
+  'data': 'Perfectly balanced',
+  'dataVersion': '',
+  'metadataVersion': '1'
+},
+{
+  'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',
+  'subject': 'eventhubs/test',
+  'eventType': 'captureFileCreated',
+  'eventTime': '2017-07-14T23:10:27.7689666Z',
+  'id': '7b11c4ce-1c34-4416-848b-1730e766f126',
+  'data': 'as all things should be',
+  'dataVersion': '',
+  'metadataVersion': '1'
+}]";
         // JArray
         public const string arrayDataEvent = @"{
   'topic': '/subscriptions/5b4b650e-28b9-4790-b3ab-ddbd88d727c4/resourcegroups/canaryeh/providers/Microsoft.EventHub/namespaces/canaryeh',

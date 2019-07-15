@@ -22,10 +22,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         private static string _functionOut = null;
 
         [Theory]
-        [InlineData("EventGridParams.TestEventGridToString")]
-        [InlineData("EventGridParams.TestEventGridToJObject")]
-        [InlineData("EventGridParams.TestEventGridToNuget")]
-        public async Task ConsumeEventGridEventTest(string functionName)
+        [InlineData("EventGridParams.TestEventGridToString_Single")]
+        [InlineData("EventGridParams.TestEventGridToJObject_Single")]
+        [InlineData("EventGridParams.TestEventGridToNuget_Single")]
+        [InlineData("EventGridParams.TestEventGridToValidCustom_Single")]
+        public async Task ConsumeEventGridEventTest_Single(string functionName)
         {
             JObject eve = JObject.Parse(FakeData.eventGridEvent);
             var args = new Dictionary<string, object>{
@@ -41,20 +42,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             _functionOut = null;
         }
 
-        [Fact]
-        public async Task ConsumeMultipleEventGridEventTests()
+        [Theory]
+        [InlineData("EventGridParams.TestEventGridToCollection_Batch")]
+        [InlineData("EventGridParams.TestEventGridToStringCollection_Batch")]
+        [InlineData("EventGridParams.TestEventGridToJObjectCollection_Batch")]
+        [InlineData("EventGridParams.TestEventGridToCustomCollection_Batch")]
+        public async Task ConsumeEventGridEventTests_Batch(string functionName)
         {
             JArray events = JArray.Parse(FakeData.multipleEventGridEvents);
             var args = new Dictionary<string, object>
             {
-                { "value", events as JArray }
+                { "values", events as JArray }
             };
 
             var expectOut = string.Join(", ", events.Select(ev => ev["subject"]));
 
             var host = TestHelpers.NewHost<EventGridParams>();
 
-            await host.GetJobHost().CallAsync("TestEventGridToCollection", args);
+            await host.GetJobHost().CallAsync(functionName, args);
             Assert.Equal(_functionOut, expectOut);
             _functionOut = null;
         }
@@ -110,7 +115,23 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             var host = TestHelpers.NewHost<TriggerParamResolve>();
 
             var args = new Dictionary<string, object>{
-                { "value", JObject.Parse((string)typeof(FakeData).GetField(argument).GetValue(null)) }
+                { "value", JToken.Parse((string)typeof(FakeData).GetField(argument).GetValue(null)) }
+            };
+
+            await host.GetJobHost().CallAsync(functionName, args);
+            Assert.Equal(expectedOutput, _functionOut);
+            _functionOut = null;
+        }
+
+        [Theory]
+        [InlineData("BindingDataTests.TestBindingData_Single", "stringDataEvent", "goodBye world")]
+        [InlineData("BindingDataTests.TestBindingData_Batch", "stringDataEvents", "Perfectly balanced, as all things should be")]
+        public async Task InputBindingDataTests(string functionName, string argument, string expectedOutput)
+        {
+            var host = TestHelpers.NewHost<BindingDataTests>();
+
+            var args = new Dictionary<string, object>{
+                { "value", JToken.Parse((string)typeof(FakeData).GetField(argument).GetValue(null)) }
             };
 
             await host.GetJobHost().CallAsync(functionName, args);
@@ -205,29 +226,49 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         {
             // different argument types
 
-            public void TestEventGridToString([EventGridTrigger] string value)
+            public void TestEventGridToString_Single([EventGridTrigger] string value)
             {
                 _functionOut = (string)JObject.Parse(value)["subject"];
             }
 
-            public void TestEventGridToJObject([EventGridTrigger] JObject value)
+            public void TestEventGridToStringCollection_Batch([EventGridTrigger] string[] values)
+            {
+                _functionOut = string.Join(", ", values.Select(v => (string)JObject.Parse(v)["subject"]));
+            }
+
+            public void TestEventGridToJObject_Single([EventGridTrigger] JObject value)
             {
                 _functionOut = (string)value["subject"];
             }
 
-            public void TestEventGridToNuget([EventGridTrigger] EventGridEvent value)
+            public void TestEventGridToJObjectCollection_Batch([EventGridTrigger] JObject[] values)
+            {
+                _functionOut = string.Join(", ", values.Select(v => v["subject"]));
+            }
+
+            public void TestEventGridToNuget_Single([EventGridTrigger] EventGridEvent value)
             {
                 _functionOut = value.Subject;
             }
 
-            public void TestEventGridToCollection([EventGridTrigger] EventGridEvent[] value)
+            public void TestEventGridToCollection_Batch([EventGridTrigger] EventGridEvent[] values)
             {
-                _functionOut = string.Join(", ", value.Select(ev => ev.Subject));
+                _functionOut = string.Join(", ", values.Select(ev => ev.Subject));
             }
 
-            public void TestEventGridToCustom([EventGridTrigger] Poco value)
+            public void TestEventGridToCustom([EventGridTrigger] InvalidPoco value)
             {
                 _functionOut = value.Name;
+            }
+
+            public void TestEventGridToValidCustom_Single([EventGridTrigger] ValidPoco value)
+            {
+                _functionOut = value.Subject;
+            }
+
+            public void TestEventGridToCustomCollection_Batch([EventGridTrigger] ValidPoco[] values)
+            {
+                _functionOut = string.Join(", ", values.Select(v => v.Subject));
             }
         }
 
@@ -239,11 +280,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             }
         }
 
-        public class Poco
+        public class InvalidPoco
         {
             public string Name { get; set; }
             // in the json payload, Subject is a String, this should cause JObject conversion to fail
             public int Subject { get; set; }
+        }
+
+        public class ValidPoco
+        {
+            public string Name { get; set; }
+            public string Subject { get; set; }
         }
 
         public class TriggerParamResolve
@@ -282,6 +329,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
             {
                 int data = (int)value["data"];
                 _functionOut = data.ToString();
+            }
+        }
+
+        public class BindingDataTests
+        {
+            public void TestBindingData_Single([EventGridTrigger] JObject value, object data)
+            {
+                _functionOut = data.ToString();
+            }
+
+            public void TestBindingData_Batch([EventGridTrigger] JObject[] value, object[] data)
+            {
+                _functionOut = string.Join(", ", data.Select(d => d.ToString()));
             }
         }
 
