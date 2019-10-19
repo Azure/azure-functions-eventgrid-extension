@@ -13,7 +13,7 @@ steps:
   displayName: 'ESRP CodeSigning: Authenticode'
   inputs:
     ConnectedServiceName: 'ESRP Service'
-    FolderPath: 'src/Extensions/bin/$(BuildConfiguration)/'
+    FolderPath: 'src/EventGridExtension/bin/$(BuildConfiguration)/'
     Pattern: Microsoft.Azure.WebJobs.Extensions.EventGrid.dll
     signConfigType: inlineSignParams
     inlineOperation: |
