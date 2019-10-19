@@ -77,16 +77,11 @@ steps:
      ]
   condition: and(succeeded(), startsWith(variables['SignArtifacts'], 'true'))
 
-- task: VSTest@2
-  displayName: 'VsTest - testAssemblies'
+- task: DotNetCoreCLI@2
   inputs:
-    testSelector: 'testAssemblies'
-    searchFolder: '$(System.DefaultWorkingDirectory)\test'
-    testAssemblyVer2: | 
-      **\*test*.dll
-      !**\*TestAdapter.dll
-      !**\obj\** 
-    diagnosticsEnabled: True
+    command: test
+    projects: 'test/**/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
 
 - task: CopyFiles@2
   displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
