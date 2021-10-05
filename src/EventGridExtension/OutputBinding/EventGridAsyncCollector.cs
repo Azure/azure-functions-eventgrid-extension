@@ -23,7 +23,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
         public EventGridAsyncCollector(IEventGridClient client, string topicEndpointUri)
         {
             _client = client;
-            _topicHostname = new Uri(topicEndpointUri).Host;
+            _topicHostname = new Uri(topicEndpointUri).Authority;
         }
 
         public Task AddAsync(EventGridEvent item, CancellationToken cancellationToken = default(CancellationToken))
