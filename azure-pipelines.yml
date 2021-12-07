@@ -95,6 +95,7 @@ steps:
   displayName: 'Generate SBOM'
   inputs:
     BuildDropPath: '$(Build.ArtifactStagingDirectory)'
+    Verbosity: "Information"
 
 - task: PublishPipelineArtifact@0
   displayName: 'Publish Pipeline Artifact'
