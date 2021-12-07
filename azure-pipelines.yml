@@ -91,6 +91,12 @@ steps:
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
     CleanTargetFolder: true
 
+- task: ManifestGeneratorTask@0
+  displayName: 'Generate SBOM'
+  inputs:
+    BuildDropPath: '$(Build.ArtifactStagingDirectory)'
+    Verbosity: "Information"
+
 - task: PublishPipelineArtifact@0
   displayName: 'Publish Pipeline Artifact'
   inputs:
