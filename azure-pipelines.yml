@@ -9,6 +9,12 @@ steps:
     projects: '**/*.csproj'
     arguments: '-c $(BuildConfiguration) -p:CommitHash=$(Build.SourceVersion);VersionSuffix=$(VersionSuffix)'
 
+- task: ManifestGeneratorTask@0
+  displayName: 'Generate SBOM'
+  inputs:
+    BuildDropPath: '$(Build.BinariesDirectory)'
+    Verbosity: "Information"
+
 - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
   displayName: 'ESRP CodeSigning: Authenticode'
   inputs:
@@ -90,12 +96,6 @@ steps:
     Contents: '*.nupkg'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
     CleanTargetFolder: true
-
-- task: ManifestGeneratorTask@0
-  displayName: 'Generate SBOM'
-  inputs:
-    BuildDropPath: '$(Build.ArtifactStagingDirectory)'
-    Verbosity: "Information"
 
 - task: PublishPipelineArtifact@0
   displayName: 'Publish Pipeline Artifact'
