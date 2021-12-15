@@ -1,5 +1,6 @@
 pool:
-  name: Hosted VS2017
+  name: '1ES-Hosted-AzFunc'
+  vmImage: 'MMS2019TLS'  #for Windows2019 or MMSUbuntu20.04TLS for ubuntu
   demands: vstest
 
 steps:
