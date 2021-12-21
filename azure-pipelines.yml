@@ -1,7 +1,8 @@
 pool:
   name: '1ES-Hosted-AzFunc'
-  vmImage: 'MMS2019TLS'  #for Windows2019 or MMSUbuntu20.04TLS for ubuntu
-  demands: vstest
+  demands:
+    - ImageOverride -equals MMS2019TLS
+    - vstest
 
 steps:
 - task: DotNetCoreCLI@2
