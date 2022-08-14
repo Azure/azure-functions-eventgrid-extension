@@ -116,7 +116,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
                 {
                     // if triggerValue does not have data property, this will be null
-                    { "data", triggerValue["data"] }
+                    { "data", triggerValue["data"] },
+                    { "id", triggerValue["id"] },
+                    { "subject", triggerValue["subject"] },
+                    { "eventType", triggerValue["eventType"] },
+                    { "evenTime", triggerValue["evenTime"] }
+                    
                 };
 
                 return Task.FromResult<ITriggerData>(new TriggerData(null, bindingData));
