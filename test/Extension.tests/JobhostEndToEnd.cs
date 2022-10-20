@@ -105,6 +105,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
         }
 
         [Theory]
+        [InlineData("DirectInvocation.TestString", "stringDataEvent")]
+        [InlineData("DirectInvocation.TestEventGridEvent", "eventGridEvent")]
+        public async Task ConsumeDirectInvocation(string functionName, string argument)
+        {
+            string value = (string)(typeof(FakeData)).GetField(argument).GetValue(null);
+
+            JObject eve = JObject.Parse(value);
+            var args = new Dictionary<string, object>{
+                { "value", value }
+            };
+
+            var expectOut = (string)eve["subject"];
+            var host = TestHelpers.NewHost<DirectInvocation>();
+
+            await host.GetJobHost().CallAsync(functionName, args);
+            Assert.Equal(_functionOut, expectOut);
+            _functionOut = null;
+        }
+
+        [Theory]
         [InlineData("TriggerParamResolve.TestJObject", "eventGridEvent", @"https://shunsouthcentralus.blob.core.windows.net/debugging/shunBlob.txt")]
         [InlineData("TriggerParamResolve.TestString", "stringDataEvent", "goodBye world")]
         [InlineData("TriggerParamResolve.TestArray", "arrayDataEvent", "ConfusedDev")]
@@ -438,6 +458,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid.Tests
                 {
                     jobjects[i] = new JObject(new JProperty("Data", i.ToString()));
                 }
+            }
+        }
+
+        public class DirectInvocation
+        {
+            public static void TestString([EventGridTrigger] string value)
+            {
+                _functionOut = (string)JObject.Parse(value)["subject"];
+            }
+
+            public static void TestEventGridEvent([EventGridTrigger] EventGridEvent value)
+            {
+                _functionOut = value.Subject;
             }
         }
     }

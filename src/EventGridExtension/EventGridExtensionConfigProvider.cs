@@ -67,6 +67,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                 .AddConverter<JToken, string>((jtoken) => jtoken.ToString(Formatting.Indented))
                 .AddConverter<JToken, string[]>((jarray) => jarray.Select(ar => ar.ToString(Formatting.Indented)).ToArray())
                 .AddConverter<JToken, DirectInvokeString>((jtoken) => new DirectInvokeString(null))
+                .AddConverter<DirectInvokeString, JToken>(directInvokeString => JToken.Parse(directInvokeString.Value))
                 .AddConverter<JToken, EventGridEvent>((jobject) => jobject.ToObject<EventGridEvent>()) // surface the type to function runtime
                 .AddConverter<JToken, EventGridEvent[]>((jobject) => jobject.ToObject<EventGridEvent[]>()) // surface the type to function runtime
                 .AddOpenConverter<JToken, OpenType.Poco>(typeof(JTokenToPocoConverter<>))
