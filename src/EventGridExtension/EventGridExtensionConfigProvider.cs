@@ -174,7 +174,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
                         };
                         executions.Add(_listeners[functionName].Executor.TryExecuteAsync(triggerData, CancellationToken.None));
                     }
-                    await Task.WhenAll(executions);
                 }
                 // Batch Dispatch
                 else
@@ -188,11 +187,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EventGrid
 
                 // FIXME without internal queuing, we are going to process all events in parallel
                 // and return 500 if there's at least one failure...which will cause EventGrid to resend the entire payload
-                foreach (var execution in executions)
+                foreach (var execution in await Task.WhenAll(executions))
                 {
-                    if (!execution.Result.Succeeded)
+                    if (!execution.Succeeded)
                     {
-                        return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(execution.Result.Exception.Message) };
+                        return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(execution.Exception.Message) };
                     }
                 }
 
