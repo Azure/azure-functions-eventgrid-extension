@@ -1,4 +1,7 @@
-# Event Grid Extension for Azure Functions
+# Event Grid Extension for Azure Functions [Archived]
+
+This GitHub project has been archived. Ongoing development on this project can be found in https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/eventgrid/Microsoft.Azure.WebJobs.Extensions.EventGrid.
+
 This extension provides functionality for receiving Event Grid webhook calls in Azure Functions, allowing you to easily write functions that respond to any event published to Event Grid.
 
 |Branch|Status|
